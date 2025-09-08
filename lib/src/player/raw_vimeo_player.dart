@@ -5,10 +5,11 @@ import 'package:vimeo_player_package/src/controllers/vimeo_player_controller.dar
 import 'package:vimeo_player_package/src/models/vimeo_meta_data.dart';
 
 class RawVimeoPlayer extends StatefulWidget {
+  @override
   final Key? key;
   final void Function(VimeoMetaData metaData)? onEnded;
 
-  RawVimeoPlayer({
+  const RawVimeoPlayer({
     this.key,
     this.onEnded,
   }) : super(key: key);
@@ -20,7 +21,7 @@ class RawVimeoPlayer extends StatefulWidget {
 class _RawVimeoPlayerState extends State<RawVimeoPlayer>
     with WidgetsBindingObserver {
   late VimeoPlayerController controller;
-  bool _isPlayerReady = false;
+  final bool _isPlayerReady = false;
 
   @override
   void initState() {
@@ -142,7 +143,7 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
   }
 
   String player(double width) {
-    var _player = '''<html>
+    var player = '''<html>
       <head>
       <style>
         html,
@@ -157,8 +158,16 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
             pointer-events: none;
         }
         #vimeo_frame {
-          height: 100%,
-          width: 100%
+          height: 100%;
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        #vimeo_frame iframe {
+          max-height: 100%;
+          max-width: 100%;
+          object-fit: contain;
         }
       </style>
       <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
@@ -270,7 +279,7 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
       </body>
     </html>''';
 
-    return _player;
+    return player;
   }
 
   String boolean({required bool value}) => value ? "'1'" : "'0'";
