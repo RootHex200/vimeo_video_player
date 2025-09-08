@@ -60,18 +60,21 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
         });
       }
     }
+    
+    // Always update state to ensure UI reflects current values
     setState(() {
       _isPlaying = controller.value.isPlaying;
       _isBuffering = controller.value.isBuffering;
+      
+      // Ensure position is always updated
+      if (controller.value.videoPosition != null) {
+        _position = controller.value.videoPosition!;
+      }
     });
+    
     if (controller.value.videoWidth != null && controller.value.videoHeight != null) {
       setState(() {
         _aspectRatio = (controller.value.videoWidth! / controller.value.videoHeight!);
-      });
-    }
-    if (controller.value.videoPosition != null) {
-      setState(() {
-        _position = controller.value.videoPosition!;
       });
     }
   }
@@ -176,14 +179,14 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
         });
       } else {
         // Show bottom controls when seekbar is not visible
-        setState(() {
-          _bottomUiVisible = true;
-          _centerUiVisible = false;
-          _uiOpacity = 1.0;
-        });
-        /* delayed animation */
-        t = Timer(Duration(seconds: 3), () {
-          _hideUi();
+      setState(() {
+        _bottomUiVisible = true;
+        _centerUiVisible = false;
+        _uiOpacity = 1.0;
+      });
+      /* delayed animation */
+      t = Timer(Duration(seconds: 3), () {
+        _hideUi();
         });
       }
     } else {
@@ -193,7 +196,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
         _centerUiVisible = true;
         _uiOpacity = 1.0;
       });
-    }
+    }    
   }
 
   _handleDoublTap(TapDownDetails details) {
@@ -371,10 +374,18 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
   }
 
   _getTimestamp() {
-    var position = _printDuration(Duration(seconds: (controller.value.videoPosition??0).round()));
-    var duration = _printDuration(Duration(seconds: (controller.value.videoDuration??0).round()));
+    final currentPos = controller.value.videoPosition ?? 0.0;
+    final totalDuration = controller.value.videoDuration ?? 0.0;
+    
+    var position = _printDuration(Duration(seconds: currentPos.round()));
+    var duration = _printDuration(Duration(seconds: totalDuration.round()));
 
-    return '$position/$duration';
+    // Ensure we always show duration even if position is 0
+    if (totalDuration > 0) {
+      return '$position / $duration';
+    } else {
+      return '0:00 / 0:00';
+    }
   }
 
   // Modern UI Components
@@ -386,20 +397,21 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
         return Transform.scale(
           scale: scale,
           child: Container(
-            width: 80,
-            height: 80,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: const Color(0xFF01A4EA),
               borderRadius: BorderRadius.circular(40),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.3),
-                width: 2,
-              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: const Color(0xFF01A4EA).withOpacity(0.4),
                   blurRadius: 20,
-                  offset: const Offset(0, 4),
+                  offset: const Offset(0, 6),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -407,11 +419,12 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
               color: Colors.transparent,
               child: InkWell(
                 borderRadius: BorderRadius.circular(40),
+                splashColor: Colors.white.withOpacity(0.2),
                 onTap: _onPlay,
-                child: const Icon(
-                  Icons.play_arrow_rounded,
+                child: Icon(
+                  controller.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   color: Colors.white,
-                  size: 40,
+                  size: 32,
                 ),
               ),
             ),
@@ -435,7 +448,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
           height: 30,
           child: CircularProgressIndicator(
             strokeWidth: 3,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF01A4EA)),
           ),
         ),
       ),
@@ -455,7 +468,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
               color: Colors.black.withOpacity(0.7),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.white.withOpacity(0.2),
+                color: const Color(0xFF01A4EA).withOpacity(0.4),
                 width: 1,
               ),
             ),
@@ -500,142 +513,233 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
       right: 0,
       bottom: 0,
       child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 300),
         opacity: _uiOpacity,
         child: Container(
-          height: 80,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
                 Colors.transparent,
-                Colors.black.withOpacity(0.8),
+                Colors.black.withOpacity(0.7),
+                Colors.black.withOpacity(0.9),
               ],
+              stops: const [0.0, 0.3, 1.0],
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              children: [
-                _buildModernControlButton(
-                  icon: controller.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  onTap: _onBottomPlayButton,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Progress bar on top
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildVimeoStyleProgressBar(),
+              ),
+              // Controls below
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  width > 600 ? 24 : (width <= 380 ? 8 : 12), 
+                  8, 
+                  width > 600 ? 24 : (width <= 380 ? 8 : 12), 
+                  width > 600 ? 20 : 16
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 10,
-                  child: _buildModernProgressBar(),
-                ),
-                const SizedBox(width: 8),
-                _buildModernTimeDisplay(),
-                const SizedBox(width: 8),
-                _buildModernControlButton(
-                  icon: Icons.settings_rounded,
-                  onTap: () {
-                    // Settings functionality
-                  },
-                ),
-                const SizedBox(width: 4),
-                _buildModernControlButton(
-                  icon: Icons.fullscreen_rounded,
-                  onTap: () {
-                    // Fullscreen functionality
-                  },
-                ),
-              ],
-            ),
+                child: width <= 380 
+                  ? SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: _buildAdaptiveControlsRow(width),
+                    )
+                  : _buildAdaptiveControlsRow(width),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildModernControlButton({required IconData icon, required VoidCallback onTap}) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: onTap,
+  Widget _buildVimeoControlButton({required IconData icon, required VoidCallback onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+          ),
           child: Icon(
             icon,
             color: Colors.white,
-            size: 20,
+            size: 18,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildModernProgressBar() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 4,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-            activeTrackColor: Colors.white,
-            inactiveTrackColor: Colors.white.withOpacity(0.3),
-            thumbColor: Colors.white,
-            overlayColor: Colors.white.withOpacity(0.2),
-          ),
-          child: Slider(
-            onChangeStart: (val) {
-              setState(() {
-                _seekingF = true;
-              });
-            },
-            onChangeEnd: (end) {
-              controller.seekTo(end.roundToDouble());
-              setState(() {
-                _seekingF = false;
-              });
-            },
-            min: 0,
-            max: controller.value.videoDuration != null ? controller.value.videoDuration! + 1.0 : 0.0,
-            value: _position.clamp(0.0, controller.value.videoDuration ?? 0.0),
-            onChanged: (value) {
-              if (!_seekingF) {
-                setState(() {
-                  _position = value;
-                });
-              }
-            },
-          ),
+  Widget _buildVimeoStyleProgressBar() {
+    return SizedBox(
+      height: 24,
+      child: SliderTheme(
+        data: SliderTheme.of(context).copyWith(
+          trackHeight: 4,
+          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+          overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+          activeTrackColor: const Color(0xFF01A4EA), // Custom blue
+          inactiveTrackColor: Colors.white.withOpacity(0.3),
+          thumbColor: Colors.white,
+          overlayColor: const Color(0xFF01A4EA).withOpacity(0.2),
         ),
-      ],
+        child: Slider(
+          onChangeStart: (val) {
+            setState(() {
+              _seekingF = true;
+            });
+          },
+          onChangeEnd: (end) {
+            controller.seekTo(end.roundToDouble());
+            setState(() {
+              _seekingF = false;
+            });
+          },
+          min: 0,
+          max: controller.value.videoDuration != null ? controller.value.videoDuration! + 1.0 : 0.0,
+          value: _position.clamp(0.0, controller.value.videoDuration ?? 0.0),
+          onChanged: (value) {
+            if (!_seekingF) {
+              setState(() {
+                _position = value;
+              });
+            }
+          },
+        ),
+      ),
     );
   }
 
-  Widget _buildModernTimeDisplay() {
+  Widget _buildVimeoTimeDisplay() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isVerySmall = screenWidth <= 380;
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.black.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFF01A4EA).withOpacity(0.3),
+          width: 0.5,
+        ),
       ),
       child: Text(
         _getTimestamp(),
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 11,
+          fontSize: isVerySmall ? 11 : 13,
           fontWeight: FontWeight.w500,
-          fontFeatures: [FontFeature.tabularFigures()],
+          fontFeatures: const [FontFeature.tabularFigures()],
+          shadows: [
+            Shadow(
+              offset: const Offset(0, 1),
+              blurRadius: 2,
+              color: Colors.black.withOpacity(0.8),
+            ),
+          ],
+        ),
+        overflow: TextOverflow.visible,
+        maxLines: 1,
+      ),
+    );
+  }
+
+  Widget _buildVolumeSlider() {
+    return SizedBox(
+      width: 50,
+      height: 24,
+      child: SliderTheme(
+        data: SliderTheme.of(context).copyWith(
+          trackHeight: 2,
+          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 3),
+          overlayShape: const RoundSliderOverlayShape(overlayRadius: 6),
+          activeTrackColor: const Color(0xFF01A4EA),
+          inactiveTrackColor: Colors.white.withOpacity(0.3),
+          thumbColor: const Color(0xFF01A4EA),
+          overlayColor: const Color(0xFF01A4EA).withOpacity(0.2),
+        ),
+        child: Slider(
+          value: 0.7, // Default volume
+          min: 0,
+          max: 1,
+          onChanged: (value) {
+            // Volume control functionality
+          },
         ),
       ),
+    );
+  }
+
+  Widget _buildAdaptiveControlsRow(double width) {
+    final isTablet = width > 600;
+    final isMobile = width <= 400;
+    final isVerySmall = width <= 380; // For very small screens
+    
+    return Row(
+      children: [
+        _buildVimeoControlButton(
+          icon: controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+          onTap: _onBottomPlayButton,
+        ),
+        SizedBox(width: isVerySmall ? 6 : (isTablet ? 16 : 12)),
+        
+        // Time display - always visible and prominent
+        _buildVimeoTimeDisplay(),
+        
+        const Spacer(),
+        
+        // Volume controls - hide on mobile and very small screens
+        if (!isMobile && !isVerySmall) ...[
+          _buildVimeoControlButton(
+            icon: Icons.volume_up,
+            onTap: () {
+              // Volume functionality
+            },
+          ),
+          const SizedBox(width: 4),
+          _buildVolumeSlider(),
+          const SizedBox(width: 6),
+        ],
+        
+        // Settings - always show with minimal spacing
+        _buildVimeoControlButton(
+          icon: Icons.settings,
+          onTap: () {
+            // Settings functionality
+          },
+        ),
+        
+        // PiP - only show on tablets
+        if (isTablet) ...[
+          const SizedBox(width: 4),
+          _buildVimeoControlButton(
+            icon: Icons.picture_in_picture_alt,
+            onTap: () {
+              // PiP functionality
+            },
+          ),
+        ],
+        
+        // Minimal spacing before fullscreen
+        const SizedBox(width: 4),
+        _buildVimeoControlButton(
+          icon: Icons.fullscreen,
+          onTap: () {
+            // Fullscreen functionality
+          },
+        ),
+      ],
     );
   }
 }
