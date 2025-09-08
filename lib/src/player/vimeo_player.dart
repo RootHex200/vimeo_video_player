@@ -46,6 +46,12 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
   bool _isBuffering = false;
   bool _isPlaying = false;
   int _seekDuration = 0;
+  bool _showSettings = false;
+  String _showSubmenu = ''; // 'quality' or 'speed'
+  String _selectedQuality = 'Auto';
+  double _playbackSpeed = 1.0;
+  double _volume = 0.7;
+  bool _isMuted = false;
   late CancelableCompleter completer;
   Timer? t;
   Timer? t2;
@@ -342,6 +348,10 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
                 controller.value.isReady && _bottomUiVisible && !_initialLoad ?
                 _buildModernBottomControls(height, width) :
                 const SizedBox(height: 1),
+                
+                // Settings overlay
+                if (_showSettings)
+                  _buildSettingsOverlay(),
               ],
             ),
           ),
@@ -399,9 +409,9 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
           child: Container(
             width: 50,
             height: 50,
-            decoration: BoxDecoration(
-              color: const Color(0xFF01A4EA),
-              borderRadius: BorderRadius.circular(40),
+              decoration: BoxDecoration(
+                color: const Color(0xFF01A4EA),
+                borderRadius: BorderRadius.circular(25),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFF01A4EA).withOpacity(0.4),
@@ -418,7 +428,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: BorderRadius.circular(40),
+                borderRadius: BorderRadius.circular(25),
                 splashColor: Colors.white.withOpacity(0.2),
                 onTap: _onPlay,
                 child: Icon(
@@ -670,11 +680,14 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
           overlayColor: const Color(0xFF01A4EA).withOpacity(0.2),
         ),
         child: Slider(
-          value: 0.7, // Default volume
+          value: _volume,
           min: 0,
           max: 1,
           onChanged: (value) {
-            // Volume control functionality
+            setState(() {
+              _volume = value;
+              _isMuted = value == 0;
+            });
           },
         ),
       ),
@@ -702,9 +715,17 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
         // Volume controls - hide on mobile and very small screens
         if (!isMobile && !isVerySmall) ...[
           _buildVimeoControlButton(
-            icon: Icons.volume_up,
+            icon: _isMuted ? Icons.volume_off : (_volume > 0.5 ? Icons.volume_up : Icons.volume_down),
             onTap: () {
-              // Volume functionality
+              setState(() {
+                if (_isMuted) {
+                  _isMuted = false;
+                  _volume = 0.7;
+                } else {
+                  _isMuted = true;
+                  _volume = 0.0;
+                }
+              });
             },
           ),
           const SizedBox(width: 4),
@@ -716,7 +737,10 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
         _buildVimeoControlButton(
           icon: Icons.settings,
           onTap: () {
-            // Settings functionality
+            setState(() {
+              _showSettings = !_showSettings;
+              _showSubmenu = ''; // Reset submenu when opening/closing settings
+            });
           },
         ),
         
@@ -740,6 +764,304 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildSettingsOverlay() {
+    if (_showSubmenu == 'quality') {
+      return _buildQualitySubmenu();
+    } else if (_showSubmenu == 'speed') {
+      return _buildSpeedSubmenu();
+    }
+    
+    return Positioned(
+      right: 16,
+      bottom: 80,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: 180,
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.85),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Quality Option
+              _buildSimpleSettingsOption(
+                'Quality',
+                _selectedQuality,
+                () {
+                  setState(() {
+                    _showSubmenu = 'quality';
+                  });
+                },
+              ),
+              
+              // Divider
+              Container(
+                height: 1,
+                color: Colors.white.withOpacity(0.1),
+              ),
+              
+              // Speed Option
+              _buildSimpleSettingsOption(
+                'Speed',
+                _playbackSpeed == 1.0 ? 'Normal' : '${_playbackSpeed}x',
+                () {
+                  setState(() {
+                    _showSubmenu = 'speed';
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSimpleSettingsOption(String title, String currentValue, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              currentValue,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_right,
+              color: Colors.white.withOpacity(0.6),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQualitySubmenu() {
+    final qualities = ['Auto', '1080p', '720p', '480p', '360p'];
+    return Positioned(
+      right: 16,
+      bottom: 80,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: 160,
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.85),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.white.withOpacity(0.1),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _showSubmenu = '';
+                        });
+                      },
+                      child: Icon(
+                        Icons.chevron_left,
+                        color: Colors.white.withOpacity(0.8),
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Quality',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Quality options
+              ...qualities.map((quality) => 
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedQuality = quality;
+                      _showSubmenu = '';
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Text(
+                          quality,
+                          style: TextStyle(
+                            color: _selectedQuality == quality ? const Color(0xFF01A4EA) : Colors.white,
+                            fontSize: 13,
+                            fontWeight: _selectedQuality == quality ? FontWeight.w500 : FontWeight.w400,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (_selectedQuality == quality)
+                          const Icon(
+                            Icons.check,
+                            color: Color(0xFF01A4EA),
+                            size: 16,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpeedSubmenu() {
+    final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    return Positioned(
+      right: 16,
+      bottom: 80,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: 160,
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.85),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.white.withOpacity(0.1),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _showSubmenu = '';
+                        });
+                      },
+                      child: Icon(
+                        Icons.chevron_left,
+                        color: Colors.white.withOpacity(0.8),
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Speed',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Speed options
+              ...speeds.map((speed) => 
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _playbackSpeed = speed;
+                      _showSubmenu = '';
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Text(
+                          speed == 1.0 ? 'Normal' : '${speed}x',
+                          style: TextStyle(
+                            color: _playbackSpeed == speed ? const Color(0xFF01A4EA) : Colors.white,
+                            fontSize: 13,
+                            fontWeight: _playbackSpeed == speed ? FontWeight.w500 : FontWeight.w400,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (_playbackSpeed == speed)
+                          const Icon(
+                            Icons.check,
+                            color: Color(0xFF01A4EA),
+                            size: 16,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
