@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:async/async.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:vimeo_player_package/src/models/vimeo_meta_data.dart';
 import 'package:vimeo_player_package/src/player/raw_vimeo_player.dart';
 
 class VimeoPlayer extends StatefulWidget {
+  @override
   final Key? key;
   final VimeoPlayerController controller;
   final double? height;
@@ -15,7 +17,7 @@ class VimeoPlayer extends StatefulWidget {
   final int skipDuration;
   final VoidCallback? onReady;
 
-  VimeoPlayer({
+  const VimeoPlayer({
     this.key,
     required this.controller,
     this.width,
@@ -163,17 +165,35 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
     if (t != null && t!.isActive) {
       t!.cancel();
     }
-    if (this._isPlaying) {
+    if (_isPlaying) {
+      if (_bottomUiVisible) {
+        // Only pause the video when seekbar is showing
+        controller.pause();
+        setState(() {
+          _bottomUiVisible = false;
+          _centerUiVisible = true;
+          _uiOpacity = 1.0;
+        });
+      } else {
+        // Show bottom controls when seekbar is not visible
+        setState(() {
+          _bottomUiVisible = true;
+          _centerUiVisible = false;
+          _uiOpacity = 1.0;
+        });
+        /* delayed animation */
+        t = Timer(Duration(seconds: 3), () {
+          _hideUi();
+        });
+      }
+    } else {
+      // Show center play button when video is paused
       setState(() {
-        _bottomUiVisible = true;
-        _centerUiVisible = false;
+        _bottomUiVisible = false;
+        _centerUiVisible = true;
         _uiOpacity = 1.0;
       });
-      /* delayed animation */
-      t = Timer(Duration(seconds: 3), () {
-        _hideUi();
-      });
-    }    
+    }
   }
 
   _handleDoublTap(TapDownDetails details) {
@@ -227,7 +247,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
       color: Colors.black,
       child: InheritedVimeoPlayer(
         controller: controller,
-        child: Container(
+        child: SizedBox(
           width: widget.width ?? MediaQuery.of(context).size.width,
           child: AspectRatio(
             aspectRatio: _aspectRatio,
@@ -255,13 +275,17 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
                   onDoubleTapDown: _handleDoublTap,
                   child: AnimatedOpacity(
                     opacity: _uiOpacity,
-                    curve: Interval(0.5,1),
-                    duration: Duration(milliseconds: 600),
+                    curve: Curves.easeInOutCubic,
+                    duration: const Duration(milliseconds: 400),
                     child: controller.value.isReady ? Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.transparent, Colors.transparent, Colors.black],
-                          stops: [0.0,0.75,1],
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.1),
+                            Colors.black.withOpacity(0.7)
+                          ],
+                          stops: const [0.0, 0.6, 1.0],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter
                         )
@@ -269,149 +293,52 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
                       child: controller.value.isReady ?
                       Center(
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: <Widget>[
-                            _seekingB ? Row(
-                              children: <Widget>[
-                                Text(
-                                  '${_seekDuration.toString()}s',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18
-                                  ),
+                            Expanded(
+                              flex: 2,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 40),
+                                  child: _seekingB ? _buildModernSeekIndicator(
+                                    duration: _seekDuration,
+                                    isForward: false,
+                                  ) : const SizedBox(),
                                 ),
-                                Icon(
-                                  Icons.fast_rewind,
-                                  color: Colors.white,
-                                ),
-                              ],
-                            ) : SizedBox(),
-                            _isBuffering ?
-                            CircularProgressIndicator(
-                              strokeWidth: 4,
-                            )
-                            :
-                            _centerUiVisible ? FloatingActionButton(
-                              elevation: 0,
-                              backgroundColor: Colors.white54,
-                              child: Icon(
-                                Icons.play_arrow,
-                                color: Colors.white,
-                                size: 34,
                               ),
-                              onPressed: () {
-                                _onPlay();
-                              }
-                            ): SizedBox(),
-                            _seekingF ? Row(
-                              children: <Widget>[
-                                Icon(
-                                  Icons.fast_forward,
-                                  color: Colors.white,
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Center(
+                                child: _isBuffering ?
+                                _buildModernLoadingIndicator()
+                                :
+                                _centerUiVisible ? _buildModernPlayButton() : const SizedBox(),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 40),
+                                  child: _seekingF ? _buildModernSeekIndicator(
+                                    duration: _seekDuration,
+                                    isForward: true,
+                                  ) : const SizedBox(),
                                 ),
-                                Text(
-                                  '${_seekDuration.toString()}s',
-                                  style: TextStyle(
-                                    color: Colors.white,                                    
-                                  ),
-                                )
-                              ],
-                            ) : SizedBox(),
+                              ),
+                            ),
                           ],
                         ),
-                      ) : SizedBox(width: 1,),
-                    ) : SizedBox(),
+                      ) : const SizedBox(width: 1),
+                    ) : const SizedBox(),
                   ),
                 ),
                 controller.value.isReady && _bottomUiVisible && !_initialLoad ?
-                Positioned(
-                  height: height * 0.05,
-                  bottom: 0,
-                  child: AnimatedOpacity(
-                    duration: Duration(milliseconds: 500),
-                    opacity: _uiOpacity,
-                    child: Flex(
-                      direction: Axis.horizontal,
-                      children: <Widget>[
-                        GestureDetector(
-                          child: Container(
-                            height: height * 0.05,
-                            width: width * 0.1,
-                            child: Icon(
-                              controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                              color: Colors.white,
-                            ),
-                          ),
-                          onTap: () {
-                            /* pause button clicked */
-                            _onBottomPlayButton();
-                          },
-                        ),
-                        Container(
-                          width: width * 0.6,
-                          child: Slider(
-                            onChangeStart: (val) {
-                              setState(() {
-                                _seekingF = true;
-                              });
-                            },
-                            label: _getTimestamp(),
-                            onChangeEnd: (end) {
-                              controller.seekTo(end.roundToDouble());
-                              setState(() {
-                                _seekingF = false;
-                              });
-                            },
-                            inactiveColor: Colors.blueGrey,
-                            min: 0,
-                            max: controller.value.videoDuration != null ? controller.value.videoDuration! + 1.0 : 0.0,
-                            value: _position,
-                            onChanged: (value) {
-                              if (!_seekingF) {
-                                setState(() {
-                                  if (value >= 0 && value <= _position)
-                                  _position = value;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                        Container(
-                          child: Text(
-                            _getTimestamp() + "",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          child: Container(
-                            width: width * 0.1,
-                            child: Icon(
-                              Icons.settings,
-                              color: Colors.white,
-                            ),
-                          ),
-                          onTap: () {
-                          },
-                        ),
-                        GestureDetector(
-                          child: Container(
-                            width: width * 0.1,
-                            child: Icon(
-                              Icons.fullscreen,
-                              color: Colors.white,
-                            ),
-                          ),
-                          onTap: () {
-                          },
-                        )
-                      ]
-                    ),
-                  ),
-                ):
-                SizedBox(height: 1,)
+                _buildModernBottomControls(height, width) :
+                const SizedBox(height: 1),
               ],
             ),
           ),
@@ -437,16 +364,278 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
       ret += '$twoDigitHours:';
     }
     ret += '$twoDigitMinutes:';
-    ret += '$twoDigitSeconds';
+    ret += twoDigitSeconds;
 
 
     return ret == '' ? '0:00' : ret;
   }
 
   _getTimestamp() {
-    var position = _printDuration(new Duration(seconds: (controller.value.videoPosition??0).round()));
-    var duration = _printDuration(new Duration(seconds: (controller.value.videoDuration??0).round()));
+    var position = _printDuration(Duration(seconds: (controller.value.videoPosition??0).round()));
+    var duration = _printDuration(Duration(seconds: (controller.value.videoDuration??0).round()));
 
     return '$position/$duration';
+  }
+
+  // Modern UI Components
+  Widget _buildModernPlayButton() {
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 300),
+      tween: Tween(begin: 0.8, end: 1.0),
+      builder: (context, scale, child) {
+        return Transform.scale(
+          scale: scale,
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(40),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(40),
+                onTap: _onPlay,
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildModernLoadingIndicator() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: const Center(
+        child: SizedBox(
+          width: 30,
+          height: 30,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernSeekIndicator({required int duration, required bool isForward}) {
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 200),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, opacity, child) {
+        return Opacity(
+          opacity: opacity,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!isForward) ...[
+                  const Icon(
+                    Icons.fast_rewind_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  '${duration.abs()}s',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (isForward) ...[
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.fast_forward_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildModernBottomControls(double height, double width) {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 400),
+        opacity: _uiOpacity,
+        child: Container(
+          height: 80,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                Colors.black.withOpacity(0.8),
+              ],
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                _buildModernControlButton(
+                  icon: controller.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  onTap: _onBottomPlayButton,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 10,
+                  child: _buildModernProgressBar(),
+                ),
+                const SizedBox(width: 8),
+                _buildModernTimeDisplay(),
+                const SizedBox(width: 8),
+                _buildModernControlButton(
+                  icon: Icons.settings_rounded,
+                  onTap: () {
+                    // Settings functionality
+                  },
+                ),
+                const SizedBox(width: 4),
+                _buildModernControlButton(
+                  icon: Icons.fullscreen_rounded,
+                  onTap: () {
+                    // Fullscreen functionality
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernControlButton({required IconData icon, required VoidCallback onTap}) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onTap,
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernProgressBar() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 4,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+            activeTrackColor: Colors.white,
+            inactiveTrackColor: Colors.white.withOpacity(0.3),
+            thumbColor: Colors.white,
+            overlayColor: Colors.white.withOpacity(0.2),
+          ),
+          child: Slider(
+            onChangeStart: (val) {
+              setState(() {
+                _seekingF = true;
+              });
+            },
+            onChangeEnd: (end) {
+              controller.seekTo(end.roundToDouble());
+              setState(() {
+                _seekingF = false;
+              });
+            },
+            min: 0,
+            max: controller.value.videoDuration != null ? controller.value.videoDuration! + 1.0 : 0.0,
+            value: _position.clamp(0.0, controller.value.videoDuration ?? 0.0),
+            onChanged: (value) {
+              if (!_seekingF) {
+                setState(() {
+                  _position = value;
+                });
+              }
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernTimeDisplay() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        _getTimestamp(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          fontFeatures: [FontFeature.tabularFigures()],
+        ),
+      ),
+    );
   }
 }
