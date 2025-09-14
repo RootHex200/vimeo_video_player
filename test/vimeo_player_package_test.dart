@@ -20,4 +20,16 @@ void main() {
     expect(flags.loop, false);
     expect(flags.muted, false);
   });
+
+  test('VimeoPlayerController volume methods', () {
+    final controller = VimeoPlayerController(
+      initialVideoId: 'test123',
+      flags: VimeoPlayerFlags(),
+    );
+
+    // Test that volume methods exist and can be called
+    expect(() => controller.setVolume(0.5), returnsNormally);
+    expect(() => controller.mute(), returnsNormally);
+    expect(() => controller.unmute(), returnsNormally);
+  });
 }

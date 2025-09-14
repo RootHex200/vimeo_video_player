@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:vimeo_player_package/src/controllers/vimeo_player_controller.dart';
@@ -9,10 +8,7 @@ class RawVimeoPlayer extends StatefulWidget {
   final Key? key;
   final void Function(VimeoMetaData metaData)? onEnded;
 
-  const RawVimeoPlayer({
-    this.key,
-    this.onEnded,
-  }) : super(key: key);
+  const RawVimeoPlayer({this.key, this.onEnded}) : super(key: key);
 
   @override
   _RawVimeoPlayerState createState() => _RawVimeoPlayerState();
@@ -27,7 +23,13 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _width = WidgetsBinding.instance.platformDispatcher.views.first.physicalSize.width;
+    _width = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .views
+        .first
+        .physicalSize
+        .width;
   }
 
   @override
@@ -41,109 +43,142 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
   @override
   void didChangeMetrics() {
     setState(() {
-      _width = WidgetsBinding.instance.platformDispatcher.views.first.physicalSize.width;
+      _width = WidgetsBinding
+          .instance
+          .platformDispatcher
+          .views
+          .first
+          .physicalSize
+          .width;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-
     controller = VimeoPlayerController.of(context);
     return IgnorePointer(
-        ignoring: true,
-        child: InAppWebView(
-          key: widget.key,
-          initialData: InAppWebViewInitialData(
-              data: player(_width),
-              baseUrl: WebUri('https://www.vimeo.com'),
-              encoding: 'utf-8',
-              mimeType: 'text/html'),
-          initialSettings: InAppWebViewSettings(
-                  allowsInlineMediaPlayback: false,
-                  userAgent: userAgent,
-                  mediaPlaybackRequiresUserGesture: false,
-                  transparentBackground: true),
-          onWebViewCreated: (webController) {
-            controller.updateValue(
-              controller.value.copyWith(webViewController: webController),
-            );
-            /* add js handlers */
-            webController..addJavaScriptHandler(
-              handlerName: 'Ready', 
+      ignoring: true,
+      child: InAppWebView(
+        key: widget.key,
+        initialData: InAppWebViewInitialData(
+          data: player(_width),
+          baseUrl: WebUri('https://www.vimeo.com'),
+          encoding: 'utf-8',
+          mimeType: 'text/html',
+        ),
+        initialSettings: InAppWebViewSettings(
+          allowsInlineMediaPlayback: false,
+          userAgent: userAgent,
+          mediaPlaybackRequiresUserGesture: false,
+          transparentBackground: true,
+        ),
+        onWebViewCreated: (webController) {
+          controller.updateValue(
+            controller.value.copyWith(webViewController: webController),
+          );
+          /* add js handlers */
+          webController
+            ..addJavaScriptHandler(
+              handlerName: 'Ready',
               callback: (_) {
                 print('player ready');
                 if (!controller.value.isReady) {
-                  controller.updateValue(controller.value.copyWith(isReady: true));
+                  controller.updateValue(
+                    controller.value.copyWith(isReady: true),
+                  );
                 }
-              }
-            )..addJavaScriptHandler(
-              handlerName: 'VideoPosition', 
+              },
+            )
+            ..addJavaScriptHandler(
+              handlerName: 'VideoPosition',
               callback: (params) {
-                controller.updateValue(controller.value
-                      .copyWith(videoPosition: double.parse(params.first.toString())));
-                }
-            )..addJavaScriptHandler(
-              handlerName: 'VideoData', 
+                controller.updateValue(
+                  controller.value.copyWith(
+                    videoPosition: double.parse(params.first.toString()),
+                  ),
+                );
+              },
+            )
+            ..addJavaScriptHandler(
+              handlerName: 'VideoData',
               callback: (params) {
                 //print('VideoData: ' + json.decode(params.first));
-                controller.updateValue(controller.value.copyWith(
-                  videoTitle: params.first['title'].toString(),
-                  videoDuration: double.parse(
-                      params.first['duration'].toString()),
-                  videoWidth: double.parse(
-                      params.first['width'].toString()),
-                  videoHeight: double.parse(
-                      params.first['height'].toString()),
-                ));
-              }
-            )..addJavaScriptHandler(
-              handlerName: 'StateChange', 
+                controller.updateValue(
+                  controller.value.copyWith(
+                    videoTitle: params.first['title'].toString(),
+                    videoDuration: double.parse(
+                      params.first['duration'].toString(),
+                    ),
+                    videoWidth: double.parse(params.first['width'].toString()),
+                    videoHeight: double.parse(
+                      params.first['height'].toString(),
+                    ),
+                  ),
+                );
+              },
+            )
+            ..addJavaScriptHandler(
+              handlerName: 'StateChange',
               callback: (params) {
                 switch (params.first) {
-                    case -2:
-                      controller.updateValue(
-                          controller.value.copyWith(isBuffering: true));
-                      break;
-                    case -1:
-                      controller.updateValue(controller.value
-                          .copyWith(isPlaying: false, hasEnded: true));
-                      widget.onEnded?.call(VimeoMetaData(
-                          videoDuration: Duration(
-                              seconds: controller.value.videoDuration?.round() ?? 0),
-                          videoId: controller.initialVideoId,
-                          videoTitle: controller.value.videoTitle ?? ''));
-                      break;
-                    case 0:
-                      controller.updateValue(controller.value
-                          .copyWith(isReady: true, isBuffering: false));
-                      break;
-                    case 1:
-                      controller.updateValue(
-                          controller.value.copyWith(isPlaying: false));
-                      break;
-                    case 2:
-                      controller.updateValue(
-                          controller.value.copyWith(isPlaying: true));
-                      break;
-                    default:
-                      print('default player state');
-                  }
-              }
+                  case -2:
+                    controller.updateValue(
+                      controller.value.copyWith(isBuffering: true),
+                    );
+                    break;
+                  case -1:
+                    controller.updateValue(
+                      controller.value.copyWith(
+                        isPlaying: false,
+                        hasEnded: true,
+                      ),
+                    );
+                    widget.onEnded?.call(
+                      VimeoMetaData(
+                        videoDuration: Duration(
+                          seconds: controller.value.videoDuration?.round() ?? 0,
+                        ),
+                        videoId: controller.initialVideoId,
+                        videoTitle: controller.value.videoTitle ?? '',
+                      ),
+                    );
+                    break;
+                  case 0:
+                    controller.updateValue(
+                      controller.value.copyWith(
+                        isReady: true,
+                        isBuffering: false,
+                      ),
+                    );
+                    break;
+                  case 1:
+                    controller.updateValue(
+                      controller.value.copyWith(isPlaying: false),
+                    );
+                    break;
+                  case 2:
+                    controller.updateValue(
+                      controller.value.copyWith(isPlaying: true),
+                    );
+                    break;
+                  default:
+                    print('default player state');
+                }
+              },
             );
-          },
-          onLoadStop: (_, __) {
+        },
+        onLoadStop: (_, __) {
           if (_isPlayerReady) {
-            controller.updateValue(
-              controller.value.copyWith(isReady: true),
-            );
+            controller.updateValue(controller.value.copyWith(isReady: true));
           }
-          },
-        )
-      );
+        },
+      ),
+    );
   }
 
   String player(double width) {
-    var player = '''<html>
+    var player =
+        '''<html>
       <head>
       <style>
         html,
@@ -273,6 +308,14 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
         function reset() {
           vimPlayer.unload().then(function(value) {
             vimPlayer.loadVideo(${controller.initialVideoId})
+          });
+        }
+
+        function setVolume(volume) {
+          vimPlayer.setVolume(volume).then(function(volume) {
+            console.log('Volume set to: ' + volume);
+          }).catch(function(error) {
+            console.log('Error setting volume: ' + error);
           });
         }
         </script>

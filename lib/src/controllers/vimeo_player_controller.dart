@@ -15,43 +15,46 @@ class VimeoPlayerValue {
   final double? videoHeight;
   final InAppWebViewController? webViewController;
 
-  VimeoPlayerValue(
-      {this.isReady = false,
-      this.isPlaying = false,
-      this.isFullscreen = false,
-      this.isBuffering = false,
-      this.hasEnded = false,
-      this.videoTitle,
-      this.videoPosition,
-      this.videoDuration,
-      this.videoWidth,
-      this.videoHeight,
-      this.webViewController});
+  VimeoPlayerValue({
+    this.isReady = false,
+    this.isPlaying = false,
+    this.isFullscreen = false,
+    this.isBuffering = false,
+    this.hasEnded = false,
+    this.videoTitle,
+    this.videoPosition,
+    this.videoDuration,
+    this.videoWidth,
+    this.videoHeight,
+    this.webViewController,
+  });
 
-  VimeoPlayerValue copyWith(
-      {bool? isReady,
-      bool? isPlaying,
-      bool? isFullscreen,
-      bool? isBuffering,
-      bool? hasEnded,
-      String? videoTitle,
-      double? videoPosition,
-      double? videoDuration,
-      double? videoWidth,
-      double? videoHeight,
-      InAppWebViewController? webViewController}) {
+  VimeoPlayerValue copyWith({
+    bool? isReady,
+    bool? isPlaying,
+    bool? isFullscreen,
+    bool? isBuffering,
+    bool? hasEnded,
+    String? videoTitle,
+    double? videoPosition,
+    double? videoDuration,
+    double? videoWidth,
+    double? videoHeight,
+    InAppWebViewController? webViewController,
+  }) {
     return VimeoPlayerValue(
-        isReady: isReady ?? this.isReady,
-        isPlaying: isPlaying ?? this.isPlaying,
-        isFullscreen: isFullscreen ?? this.isFullscreen,
-        isBuffering: isBuffering ?? this.isBuffering,
-        hasEnded: hasEnded ?? this.hasEnded,
-        videoTitle: videoTitle ?? this.videoTitle,
-        videoDuration: videoDuration ?? this.videoDuration,
-        videoWidth: videoWidth ?? this.videoWidth,
-        videoHeight: videoHeight ?? this.videoHeight,
-        videoPosition: videoPosition ?? this.videoPosition,
-        webViewController: webViewController ?? this.webViewController);
+      isReady: isReady ?? this.isReady,
+      isPlaying: isPlaying ?? this.isPlaying,
+      isFullscreen: isFullscreen ?? this.isFullscreen,
+      isBuffering: isBuffering ?? this.isBuffering,
+      hasEnded: hasEnded ?? this.hasEnded,
+      videoTitle: videoTitle ?? this.videoTitle,
+      videoDuration: videoDuration ?? this.videoDuration,
+      videoWidth: videoWidth ?? this.videoWidth,
+      videoHeight: videoHeight ?? this.videoHeight,
+      videoPosition: videoPosition ?? this.videoPosition,
+      webViewController: webViewController ?? this.webViewController,
+    );
   }
 }
 
@@ -59,9 +62,10 @@ class VimeoPlayerController extends ValueNotifier<VimeoPlayerValue> {
   final String initialVideoId;
   final VimeoPlayerFlags flags;
 
-  VimeoPlayerController(
-      {required this.initialVideoId, this.flags = const VimeoPlayerFlags()})
-      : super(VimeoPlayerValue());
+  VimeoPlayerController({
+    required this.initialVideoId,
+    this.flags = const VimeoPlayerFlags(),
+  }) : super(VimeoPlayerValue());
 
   static VimeoPlayerController of(BuildContext context) {
     final InheritedVimeoPlayer? inherited = context
@@ -80,6 +84,9 @@ class VimeoPlayerController extends ValueNotifier<VimeoPlayerValue> {
   void pause() => _callMethod('pause()');
   void seekTo(double delta) => _callMethod('seekTo($delta)');
   void reset() => _callMethod('reset()');
+  void setVolume(double volume) => _callMethod('setVolume($volume)');
+  void mute() => _callMethod('setVolume(0)');
+  void unmute() => _callMethod('setVolume(1)');
 
   _callMethod(String methodString) {
     if (value.isReady) {

@@ -22,21 +22,22 @@ class VimeoPlayer extends StatefulWidget {
     required this.controller,
     this.width,
     this.height,
-    this.aspectRatio = 16/9,
+    this.aspectRatio = 16 / 9,
     this.skipDuration = 5,
-    this.onReady
+    this.onReady,
   }) : super(key: key);
 
   @override
   _VimeoPlayerState createState() => _VimeoPlayerState();
 }
 
-class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStateMixin {
+class _VimeoPlayerState extends State<VimeoPlayer>
+    with SingleTickerProviderStateMixin {
   late VimeoPlayerController controller;
   late AnimationController _animationController;
   bool _initialLoad = true;
   double _position = 0.0;
-  double _aspectRatio = 16/9;
+  double _aspectRatio = 16 / 9;
   bool _seekingF = false;
   bool _seekingB = false;
   bool _isPlayerReady = false;
@@ -66,21 +67,23 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
         });
       }
     }
-    
+
     // Always update state to ensure UI reflects current values
     setState(() {
       _isPlaying = controller.value.isPlaying;
       _isBuffering = controller.value.isBuffering;
-      
+
       // Ensure position is always updated
       if (controller.value.videoPosition != null) {
         _position = controller.value.videoPosition!;
       }
     });
-    
-    if (controller.value.videoWidth != null && controller.value.videoHeight != null) {
+
+    if (controller.value.videoWidth != null &&
+        controller.value.videoHeight != null) {
       setState(() {
-        _aspectRatio = (controller.value.videoWidth! / controller.value.videoHeight!);
+        _aspectRatio =
+            (controller.value.videoWidth! / controller.value.videoHeight!);
       });
     }
   }
@@ -91,17 +94,19 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
     controller = widget.controller..addListener(listener);
     _aspectRatio = widget.aspectRatio;
 
-    completer = CancelableCompleter(onCancel: () {
-      print('onCancel');
-      setState(() {
-        _bottomUiVisible = true;
-        _uiOpacity = 1.0;
-      });
-    });
+    completer = CancelableCompleter(
+      onCancel: () {
+        print('onCancel');
+        setState(() {
+          _bottomUiVisible = true;
+          _uiOpacity = 1.0;
+        });
+      },
+    );
 
     _animationController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 600)
+      duration: Duration(milliseconds: 600),
     );
   }
 
@@ -185,14 +190,14 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
         });
       } else {
         // Show bottom controls when seekbar is not visible
-      setState(() {
-        _bottomUiVisible = true;
-        _centerUiVisible = false;
-        _uiOpacity = 1.0;
-      });
-      /* delayed animation */
-      t = Timer(Duration(seconds: 3), () {
-        _hideUi();
+        setState(() {
+          _bottomUiVisible = true;
+          _centerUiVisible = false;
+          _uiOpacity = 1.0;
+        });
+        /* delayed animation */
+        t = Timer(Duration(seconds: 3), () {
+          _hideUi();
         });
       }
     } else {
@@ -202,7 +207,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
         _centerUiVisible = true;
         _uiOpacity = 1.0;
       });
-    }    
+    }
   }
 
   _handleDoublTap(TapDownDetails details) {
@@ -237,7 +242,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
     t = Timer(Duration(seconds: 3), () {
       _hideUi();
     });
-    t2 = Timer(Duration(seconds: 1),() {
+    t2 = Timer(Duration(seconds: 1), () {
       setState(() {
         _seekingF = false;
         _seekingB = false;
@@ -286,72 +291,84 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
                     opacity: _uiOpacity,
                     curve: Curves.easeInOutCubic,
                     duration: const Duration(milliseconds: 400),
-                    child: controller.value.isReady ? Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.1),
-                            Colors.black.withOpacity(0.7)
-                          ],
-                          stops: const [0.0, 0.6, 1.0],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter
-                        )
-                      ),
-                      child: controller.value.isReady ?
-                      Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: <Widget>[
-                            Expanded(
-                              flex: 2,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 40),
-                                  child: _seekingB ? _buildModernSeekIndicator(
-                                    duration: _seekDuration,
-                                    isForward: false,
-                                  ) : const SizedBox(),
-                                ),
+                    child: controller.value.isReady
+                        ? Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withOpacity(0.1),
+                                  Colors.black.withOpacity(0.7),
+                                ],
+                                stops: const [0.0, 0.6, 1.0],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
                               ),
                             ),
-                            Expanded(
-                              flex: 1,
-                              child: Center(
-                                child: _isBuffering ?
-                                _buildModernLoadingIndicator()
-                                :
-                                _centerUiVisible ? _buildModernPlayButton() : const SizedBox(),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 40),
-                                  child: _seekingF ? _buildModernSeekIndicator(
-                                    duration: _seekDuration,
-                                    isForward: true,
-                                  ) : const SizedBox(),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ) : const SizedBox(width: 1),
-                    ) : const SizedBox(),
+                            child: controller.value.isReady
+                                ? Center(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: <Widget>[
+                                        Expanded(
+                                          flex: 2,
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Padding(
+                                              padding: const EdgeInsets.only(
+                                                left: 40,
+                                              ),
+                                              child: _seekingB
+                                                  ? _buildModernSeekIndicator(
+                                                      duration: _seekDuration,
+                                                      isForward: false,
+                                                    )
+                                                  : const SizedBox(),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 1,
+                                          child: Center(
+                                            child: _isBuffering
+                                                ? _buildModernLoadingIndicator()
+                                                : _centerUiVisible
+                                                ? _buildModernPlayButton()
+                                                : const SizedBox(),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Align(
+                                            alignment: Alignment.centerRight,
+                                            child: Padding(
+                                              padding: const EdgeInsets.only(
+                                                right: 40,
+                                              ),
+                                              child: _seekingF
+                                                  ? _buildModernSeekIndicator(
+                                                      duration: _seekDuration,
+                                                      isForward: true,
+                                                    )
+                                                  : const SizedBox(),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : const SizedBox(width: 1),
+                          )
+                        : const SizedBox(),
                   ),
                 ),
-                controller.value.isReady && _bottomUiVisible && !_initialLoad ?
-                _buildModernBottomControls(height, width) :
-                const SizedBox(height: 1),
-                
+                controller.value.isReady && _bottomUiVisible && !_initialLoad
+                    ? _buildModernBottomControls(height, width)
+                    : const SizedBox(height: 1),
+
                 // Settings overlay
-                if (_showSettings)
-                  _buildSettingsOverlay(),
+                if (_showSettings) _buildSettingsOverlay(),
               ],
             ),
           ),
@@ -359,7 +376,6 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
       ),
     );
   }
-
 
   String _printDuration(Duration duration) {
     String twoDigits(int n) {
@@ -379,14 +395,13 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
     ret += '$twoDigitMinutes:';
     ret += twoDigitSeconds;
 
-
     return ret == '' ? '0:00' : ret;
   }
 
   _getTimestamp() {
     final currentPos = controller.value.videoPosition ?? 0.0;
     final totalDuration = controller.value.videoDuration ?? 0.0;
-    
+
     var position = _printDuration(Duration(seconds: currentPos.round()));
     var duration = _printDuration(Duration(seconds: totalDuration.round()));
 
@@ -409,9 +424,9 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
           child: Container(
             width: 50,
             height: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFF01A4EA),
-                borderRadius: BorderRadius.circular(25),
+            decoration: BoxDecoration(
+              color: const Color(0xFF01A4EA),
+              borderRadius: BorderRadius.circular(25),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFF01A4EA).withOpacity(0.4),
@@ -432,7 +447,9 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
                 splashColor: Colors.white.withOpacity(0.2),
                 onTap: _onPlay,
                 child: Icon(
-                  controller.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  controller.value.isPlaying
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded,
                   color: Colors.white,
                   size: 32,
                 ),
@@ -465,7 +482,10 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildModernSeekIndicator({required int duration, required bool isForward}) {
+  Widget _buildModernSeekIndicator({
+    required int duration,
+    required bool isForward,
+  }) {
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 200),
       tween: Tween(begin: 0.0, end: 1.0),
@@ -549,17 +569,17 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
               // Controls below
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  width > 600 ? 24 : (width <= 380 ? 8 : 12), 
-                  8, 
-                  width > 600 ? 24 : (width <= 380 ? 8 : 12), 
-                  width > 600 ? 20 : 16
+                  width > 600 ? 24 : (width <= 380 ? 8 : 12),
+                  8,
+                  width > 600 ? 24 : (width <= 380 ? 8 : 12),
+                  width > 600 ? 20 : 16,
                 ),
-                child: width <= 380 
-                  ? SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: _buildAdaptiveControlsRow(width),
-                    )
-                  : _buildAdaptiveControlsRow(width),
+                child: width <= 380
+                    ? SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: _buildAdaptiveControlsRow(width),
+                      )
+                    : _buildAdaptiveControlsRow(width),
               ),
             ],
           ),
@@ -568,7 +588,10 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildVimeoControlButton({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildVimeoControlButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -577,14 +600,8 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
         child: Container(
           width: 36,
           height: 36,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 18,
-          ),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18)),
+          child: Icon(icon, color: Colors.white, size: 18),
         ),
       ),
     );
@@ -616,7 +633,9 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
             });
           },
           min: 0,
-          max: controller.value.videoDuration != null ? controller.value.videoDuration! + 1.0 : 0.0,
+          max: controller.value.videoDuration != null
+              ? controller.value.videoDuration! + 1.0
+              : 0.0,
           value: _position.clamp(0.0, controller.value.videoDuration ?? 0.0),
           onChanged: (value) {
             if (!_seekingF) {
@@ -633,7 +652,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
   Widget _buildVimeoTimeDisplay() {
     final screenWidth = MediaQuery.of(context).size.width;
     final isVerySmall = screenWidth <= 380;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -688,6 +707,8 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
               _volume = value;
               _isMuted = value == 0;
             });
+            // Call the controller to set volume in the player
+            controller.setVolume(value);
           },
         ),
       ),
@@ -698,7 +719,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
     final isTablet = width > 600;
     final isMobile = width <= 400;
     final isVerySmall = width <= 380; // For very small screens
-    
+
     return Row(
       children: [
         _buildVimeoControlButton(
@@ -706,24 +727,28 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
           onTap: _onBottomPlayButton,
         ),
         SizedBox(width: isVerySmall ? 6 : (isTablet ? 16 : 12)),
-        
+
         // Time display - always visible and prominent
         _buildVimeoTimeDisplay(),
-        
+
         const Spacer(),
-        
+
         // Volume controls - hide on mobile and very small screens
         if (!isMobile && !isVerySmall) ...[
           _buildVimeoControlButton(
-            icon: _isMuted ? Icons.volume_off : (_volume > 0.5 ? Icons.volume_up : Icons.volume_down),
+            icon: _isMuted
+                ? Icons.volume_off
+                : (_volume > 0.5 ? Icons.volume_up : Icons.volume_down),
             onTap: () {
               setState(() {
                 if (_isMuted) {
                   _isMuted = false;
                   _volume = 0.7;
+                  controller.unmute();
                 } else {
                   _isMuted = true;
                   _volume = 0.0;
+                  controller.mute();
                 }
               });
             },
@@ -732,7 +757,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
           _buildVolumeSlider(),
           const SizedBox(width: 6),
         ],
-        
+
         // Settings - always show with minimal spacing
         _buildVimeoControlButton(
           icon: Icons.settings,
@@ -743,7 +768,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
             });
           },
         ),
-        
+
         // PiP - only show on tablets
         if (isTablet) ...[
           const SizedBox(width: 4),
@@ -754,7 +779,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
             },
           ),
         ],
-        
+
         // Minimal spacing before fullscreen
         const SizedBox(width: 4),
         _buildVimeoControlButton(
@@ -773,7 +798,7 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
     } else if (_showSubmenu == 'speed') {
       return _buildSpeedSubmenu();
     }
-    
+
     return Positioned(
       right: 16,
       bottom: 80,
@@ -796,22 +821,15 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
             mainAxisSize: MainAxisSize.min,
             children: [
               // Quality Option
-              _buildSimpleSettingsOption(
-                'Quality',
-                _selectedQuality,
-                () {
-                  setState(() {
-                    _showSubmenu = 'quality';
-                  });
-                },
-              ),
-              
+              _buildSimpleSettingsOption('Quality', _selectedQuality, () {
+                setState(() {
+                  _showSubmenu = 'quality';
+                });
+              }),
+
               // Divider
-              Container(
-                height: 1,
-                color: Colors.white.withOpacity(0.1),
-              ),
-              
+              Container(height: 1, color: Colors.white.withOpacity(0.1)),
+
               // Speed Option
               _buildSimpleSettingsOption(
                 'Speed',
@@ -829,7 +847,11 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildSimpleSettingsOption(String title, String currentValue, VoidCallback onTap) {
+  Widget _buildSimpleSettingsOption(
+    String title,
+    String currentValue,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -890,7 +912,10 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
@@ -926,8 +951,8 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
                 ),
               ),
               // Quality options
-              ...qualities.map((quality) => 
-                GestureDetector(
+              ...qualities.map(
+                (quality) => GestureDetector(
                   onTap: () {
                     setState(() {
                       _selectedQuality = quality;
@@ -935,15 +960,22 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     child: Row(
                       children: [
                         Text(
                           quality,
                           style: TextStyle(
-                            color: _selectedQuality == quality ? const Color(0xFF01A4EA) : Colors.white,
+                            color: _selectedQuality == quality
+                                ? const Color(0xFF01A4EA)
+                                : Colors.white,
                             fontSize: 13,
-                            fontWeight: _selectedQuality == quality ? FontWeight.w500 : FontWeight.w400,
+                            fontWeight: _selectedQuality == quality
+                                ? FontWeight.w500
+                                : FontWeight.w400,
                           ),
                         ),
                         const Spacer(),
@@ -990,7 +1022,10 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
@@ -1026,8 +1061,8 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
                 ),
               ),
               // Speed options
-              ...speeds.map((speed) => 
-                GestureDetector(
+              ...speeds.map(
+                (speed) => GestureDetector(
                   onTap: () {
                     setState(() {
                       _playbackSpeed = speed;
@@ -1035,15 +1070,22 @@ class _VimeoPlayerState extends State<VimeoPlayer> with SingleTickerProviderStat
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     child: Row(
                       children: [
                         Text(
                           speed == 1.0 ? 'Normal' : '${speed}x',
                           style: TextStyle(
-                            color: _playbackSpeed == speed ? const Color(0xFF01A4EA) : Colors.white,
+                            color: _playbackSpeed == speed
+                                ? const Color(0xFF01A4EA)
+                                : Colors.white,
                             fontSize: 13,
-                            fontWeight: _playbackSpeed == speed ? FontWeight.w500 : FontWeight.w400,
+                            fontWeight: _playbackSpeed == speed
+                                ? FontWeight.w500
+                                : FontWeight.w400,
                           ),
                         ),
                         const Spacer(),
