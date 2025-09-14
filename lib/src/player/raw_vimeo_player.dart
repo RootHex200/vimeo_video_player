@@ -345,6 +345,14 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
             console.log('Invalid quality: ' + quality);
           }
         }
+
+        function setPlaybackRate(rate) {
+          vimPlayer.setPlaybackRate(rate).then(function(playbackRate) {
+            console.log('Playback rate set to: ' + playbackRate);
+          }).catch(function(error) {
+            console.log('Error setting playback rate: ' + error);
+          });
+        }
         </script>
       </body>
     </html>''';

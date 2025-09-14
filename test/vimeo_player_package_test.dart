@@ -46,4 +46,19 @@ void main() {
     expect(() => controller.setQuality('480p'), returnsNormally);
     expect(() => controller.setQuality('360p'), returnsNormally);
   });
+
+  test('VimeoPlayerController playback rate methods', () {
+    final controller = VimeoPlayerController(
+      initialVideoId: 'test123',
+      flags: VimeoPlayerFlags(),
+    );
+
+    // Test that playback rate methods exist and can be called
+    expect(() => controller.setPlaybackRate(0.5), returnsNormally);
+    expect(() => controller.setPlaybackRate(0.75), returnsNormally);
+    expect(() => controller.setPlaybackRate(1.0), returnsNormally);
+    expect(() => controller.setPlaybackRate(1.25), returnsNormally);
+    expect(() => controller.setPlaybackRate(1.5), returnsNormally);
+    expect(() => controller.setPlaybackRate(2.0), returnsNormally);
+  });
 }

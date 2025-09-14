@@ -1070,6 +1070,8 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                       _playbackSpeed = speed;
                       _showSubmenu = '';
                     });
+                    // Call the controller to set playback rate in the player
+                    controller.setPlaybackRate(speed);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(

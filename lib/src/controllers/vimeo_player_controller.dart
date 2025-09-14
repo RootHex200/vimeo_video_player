@@ -88,6 +88,7 @@ class VimeoPlayerController extends ValueNotifier<VimeoPlayerValue> {
   void mute() => _callMethod('setVolume(0)');
   void unmute() => _callMethod('setVolume(1)');
   void setQuality(String quality) => _callMethod('setQuality("$quality")');
+  void setPlaybackRate(double rate) => _callMethod('setPlaybackRate($rate)');
 
   _callMethod(String methodString) {
     if (value.isReady) {
