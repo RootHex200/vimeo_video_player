@@ -958,6 +958,8 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                       _selectedQuality = quality;
                       _showSubmenu = '';
                     });
+                    // Call the controller to set quality in the player
+                    controller.setQuality(quality);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(

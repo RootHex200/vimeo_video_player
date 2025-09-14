@@ -318,6 +318,33 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
             console.log('Error setting volume: ' + error);
           });
         }
+
+        function setQuality(quality) {
+          if (quality === 'Auto') {
+            // For auto quality, we don't set a specific quality
+            console.log('Quality set to Auto');
+            return;
+          }
+          
+          // Map quality strings to Vimeo quality values
+          var qualityMap = {
+            '1080p': '1080p',
+            '720p': '720p', 
+            '480p': '540p', // Vimeo uses 540p instead of 480p
+            '360p': '360p'
+          };
+          
+          var vimeoQuality = qualityMap[quality];
+          if (vimeoQuality) {
+            vimPlayer.setQuality(vimeoQuality).then(function(quality) {
+              console.log('Quality set to: ' + quality);
+            }).catch(function(error) {
+              console.log('Error setting quality: ' + error);
+            });
+          } else {
+            console.log('Invalid quality: ' + quality);
+          }
+        }
         </script>
       </body>
     </html>''';

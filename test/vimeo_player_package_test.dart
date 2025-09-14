@@ -32,4 +32,18 @@ void main() {
     expect(() => controller.mute(), returnsNormally);
     expect(() => controller.unmute(), returnsNormally);
   });
+
+  test('VimeoPlayerController quality methods', () {
+    final controller = VimeoPlayerController(
+      initialVideoId: 'test123',
+      flags: VimeoPlayerFlags(),
+    );
+
+    // Test that quality methods exist and can be called
+    expect(() => controller.setQuality('Auto'), returnsNormally);
+    expect(() => controller.setQuality('1080p'), returnsNormally);
+    expect(() => controller.setQuality('720p'), returnsNormally);
+    expect(() => controller.setQuality('480p'), returnsNormally);
+    expect(() => controller.setQuality('360p'), returnsNormally);
+  });
 }
