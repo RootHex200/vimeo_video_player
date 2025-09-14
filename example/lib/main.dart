@@ -50,6 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late VimeoPlayerController controller;
   bool _playerReady = false;
   String _videoTitle = 'Loading...';
+  bool _isFullScreen = false;
 
   @override
   void initState() {
@@ -57,7 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     controller = VimeoPlayerController(
       initialVideoId: '1003797907',
-      flags: VimeoPlayerFlags()
+      flags: VimeoPlayerFlags(),
     )..addListener(listener);
   }
 
@@ -83,28 +84,69 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          children: <Widget>[
-            Text(_videoTitle),
-            SizedBox(
-              height: 300,
-              child: VimeoPlayer(
-                controller: controller,
-                skipDuration: 10,
-                onReady: () {
-                  setState(() {
-                    _playerReady = true;
-                  });
-                },
-              ),
+      appBar: _isFullScreen ? null : AppBar(title: Text(widget.title)),
+      body: VimeoBuilder(
+        player: VimeoPlayer(
+          controller: controller,
+          skipDuration: 10,
+          onReady: () {
+            setState(() {
+              _playerReady = true;
+            });
+          },
+        ),
+        onEnterFullScreen: () {
+          setState(() {
+            _isFullScreen = true;
+          });
+        },
+        onExitFullScreen: () {
+          setState(() {
+            _isFullScreen = false;
+          });
+        },
+        builder: (context, player) {
+          return Center(
+            child: Column(
+              children: <Widget>[
+                if (!_isFullScreen) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    _videoTitle,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  Container(height: 300, child: player),
+                  const SizedBox(height: 20),
+                  Text(
+                    _videoTitle +
+                        (controller.value.isBuffering
+                            ? " Buffering"
+                            : controller.value.isPlaying
+                            ? " Playing"
+                            : " Ready!"),
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Rotate your device to landscape for fullscreen mode!',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.grey,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ] else
+                  player,
+              ],
             ),
-            Text(_videoTitle + (controller.value.isBuffering ? " Buffering" : controller.value.isPlaying ? " Playing" : " Ready!") ),
-          ],
-        )
+          );
+        },
       ),
     );
   }
