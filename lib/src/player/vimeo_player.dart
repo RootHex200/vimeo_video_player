@@ -960,6 +960,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                     });
                     // Call the controller to set quality in the player
                     controller.setQuality(quality);
+                    _showSettings = false;
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -1069,6 +1070,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                     setState(() {
                       _playbackSpeed = speed;
                       _showSubmenu = '';
+                      _showSettings = false;
                     });
                     // Call the controller to set playback rate in the player
                     controller.setPlaybackRate(speed);
