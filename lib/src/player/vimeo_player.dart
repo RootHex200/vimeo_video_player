@@ -331,9 +331,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                                         Expanded(
                                           flex: 1,
                                           child: Center(
-                                            child: _isBuffering
-                                                ? _buildModernLoadingIndicator()
-                                                : _centerUiVisible
+                                            child: _centerUiVisible
                                                 ? _buildModernPlayButton()
                                                 : const SizedBox(),
                                           ),
