@@ -40,6 +40,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   double _aspectRatio = 16 / 9;
   bool _seekingF = false;
   bool _seekingB = false;
+  bool _sliderSeeking = false; // Separate flag for slider seeking
   bool _isPlayerReady = false;
   bool _centerUiVisible = true;
   bool _bottomUiVisible = false;
@@ -56,6 +57,8 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   late CancelableCompleter completer;
   Timer? t;
   Timer? t2;
+  Timer? _seekingTimer; // Timer to manage seeking state
+  double? _seekingPosition; // Track position during seeking
 
   void listener() async {
     if (controller.value.isReady) {
@@ -73,11 +76,15 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       _isPlaying = controller.value.isPlaying;
       _isBuffering = controller.value.isBuffering;
 
-      // Ensure position is always updated
-      if (controller.value.videoPosition != null) {
+      // Only update position if we're not currently seeking with slider
+      // This prevents the slider from jumping back during user interaction or buffering
+      if (controller.value.videoPosition != null && !_sliderSeeking) {
         _position = controller.value.videoPosition!;
       }
     });
+
+    // Simple approach: let the timer handle clearing the seeking state
+    // This prevents any premature clearing during buffering
 
     if (controller.value.videoWidth != null &&
         controller.value.videoHeight != null) {
@@ -120,8 +127,17 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   @override
   void dispose() {
     controller.removeListener(listener);
+    _seekingTimer?.cancel();
     controller.dispose();
     super.dispose();
+  }
+
+  void _clearSeekingState() {
+    setState(() {
+      _sliderSeeking = false;
+      _seekingPosition = null;
+    });
+    _seekingTimer?.cancel();
   }
 
   _hideUi() {
@@ -196,7 +212,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
           _uiOpacity = 1.0;
         });
         /* delayed animation */
-        t = Timer(Duration(seconds: 3), () {
+        t = Timer(Duration(seconds: 2), () {
           _hideUi();
         });
       }
@@ -397,7 +413,9 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   }
 
   _getTimestamp() {
-    final currentPos = controller.value.videoPosition ?? 0.0;
+    // Use seeking position if user is currently dragging the slider
+    final currentPos =
+        _seekingPosition ?? controller.value.videoPosition ?? 0.0;
     final totalDuration = controller.value.videoDuration ?? 0.0;
 
     var position = _printDuration(Duration(seconds: currentPos.round()));
@@ -621,26 +639,33 @@ class _VimeoPlayerState extends State<VimeoPlayer>
         child: Slider(
           onChangeStart: (val) {
             setState(() {
-              _seekingF = true;
+              _sliderSeeking = true;
+              _seekingPosition = val; // Initialize seeking position
             });
           },
           onChangeEnd: (end) {
             controller.seekTo(end.roundToDouble());
-            setState(() {
-              _seekingF = false;
+            // Keep seeking state active until video actually starts playing from new position
+            _seekingTimer?.cancel();
+            _seekingTimer = Timer(Duration(seconds: 2), () {
+              // Clear seeking state after 2 seconds - simple approach
+              if (_sliderSeeking) {
+                _clearSeekingState();
+              }
             });
           },
           min: 0,
           max: controller.value.videoDuration != null
               ? controller.value.videoDuration! + 1.0
               : 0.0,
-          value: _position.clamp(0.0, controller.value.videoDuration ?? 0.0),
+          value: (_seekingPosition ?? _position).clamp(
+            0.0,
+            controller.value.videoDuration ?? 0.0,
+          ),
           onChanged: (value) {
-            if (!_seekingF) {
-              setState(() {
-                _position = value;
-              });
-            }
+            setState(() {
+              _seekingPosition = value; // Update seeking position immediately
+            });
           },
         ),
       ),
