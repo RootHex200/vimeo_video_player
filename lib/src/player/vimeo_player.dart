@@ -870,7 +870,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     // Calculate responsive positioning
     final rightPosition = isSmallScreen ? 8.0 : (isTablet ? 24.0 : 16.0);
     final bottomPosition = isSmallScreen ? 60.0 : (isTablet ? 100.0 : 80.0);
-    final overlayWidth = isSmallScreen ? 160.0 : (isTablet ? 200.0 : 180.0);
+    final overlayWidth = isSmallScreen ? 140.0 : (isTablet ? 180.0 : 160.0);
 
     if (_showSubmenu == 'quality') {
       return _buildQualitySubmenu(rightPosition, bottomPosition, overlayWidth);
@@ -963,32 +963,32 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         onTap: onTap,
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isSmallScreen ? 12 : 16, 
-            vertical: isSmallScreen ? 12 : 16,
+            horizontal: isSmallScreen ? 8 : 12, 
+            vertical: isSmallScreen ? 8 : 10,
           ),
           child: Row(
             children: [
-              // Icon
+              // Icon - smaller and more compact
               Container(
-                width: 32,
-                height: 32,
+                width: isSmallScreen ? 24 : 28,
+                height: isSmallScreen ? 24 : 28,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF01A4EA).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(6),
+                  color: const Color(0xFF01A4EA).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Icon(
                   icon,
                   color: const Color(0xFF01A4EA),
-                  size: isSmallScreen ? 16 : 18,
+                  size: isSmallScreen ? 12 : 14,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: isSmallScreen ? 8 : 10),
               
-              // Title and Value
+              // Title and Value - more compact
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -998,16 +998,15 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                       title,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: isSmallScreen ? 13 : 14,
+                        fontSize: isSmallScreen ? 12 : 13,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Text(
                       currentValue,
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
-                        fontSize: isSmallScreen ? 11 : 12,
+                        fontSize: isSmallScreen ? 10 : 11,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -1015,11 +1014,11 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 ),
               ),
               
-              // Chevron
+              // Chevron - smaller
               Icon(
                 Icons.chevron_right_rounded,
                 color: Colors.white.withOpacity(0.5),
-                size: isSmallScreen ? 18 : 20,
+                size: isSmallScreen ? 14 : 16,
               ),
             ],
           ),
@@ -1062,8 +1061,8 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               // Header
               Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: isSmallScreen ? 12 : 16,
-                  vertical: isSmallScreen ? 10 : 12,
+                  horizontal: isSmallScreen ? 8 : 12,
+                  vertical: isSmallScreen ? 8 : 10,
                 ),
                 decoration: BoxDecoration(
                   border: Border(
@@ -1082,39 +1081,49 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(3),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(3),
                         ),
                         child: Icon(
                           Icons.chevron_left_rounded,
                           color: Colors.white.withOpacity(0.8),
-                          size: isSmallScreen ? 16 : 18,
+                          size: isSmallScreen ? 14 : 16,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: isSmallScreen ? 8 : 10),
                     Icon(
                       Icons.hd,
                       color: const Color(0xFF01A4EA),
-                      size: isSmallScreen ? 16 : 18,
+                      size: isSmallScreen ? 14 : 16,
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: isSmallScreen ? 6 : 8),
                     Text(
                       'Quality',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: isSmallScreen ? 13 : 14,
+                        fontSize: isSmallScreen ? 12 : 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              // Quality options
-              ...qualities.map(
-                (quality) => _buildQualityOption(quality, isSmallScreen),
+              // Quality options - scrollable
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: isSmallScreen ? 120 : 150,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: qualities.map(
+                      (quality) => _buildQualityOption(quality, isSmallScreen),
+                    ).toList(),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1128,7 +1137,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         onTap: () {
           setState(() {
             _selectedQuality = quality;
@@ -1139,19 +1148,19 @@ class _VimeoPlayerState extends State<VimeoPlayer>
         },
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isSmallScreen ? 12 : 16,
-            vertical: isSmallScreen ? 10 : 12,
+            horizontal: isSmallScreen ? 8 : 12,
+            vertical: isSmallScreen ? 6 : 8,
           ),
           child: Row(
             children: [
               Container(
-                width: 24,
-                height: 24,
+                width: isSmallScreen ? 18 : 20,
+                height: isSmallScreen ? 18 : 20,
                 decoration: BoxDecoration(
                   color: isSelected 
                       ? const Color(0xFF01A4EA).withOpacity(0.2)
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(3),
                   border: Border.all(
                     color: isSelected 
                         ? const Color(0xFF01A4EA)
@@ -1160,21 +1169,21 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                   ),
                 ),
                 child: isSelected
-                    ? const Icon(
+                    ? Icon(
                         Icons.check,
-                        color: Color(0xFF01A4EA),
-                        size: 14,
+                        color: const Color(0xFF01A4EA),
+                        size: isSmallScreen ? 10 : 12,
                       )
                     : null,
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: isSmallScreen ? 8 : 10),
               Text(
                 quality,
                 style: TextStyle(
                   color: isSelected
                       ? const Color(0xFF01A4EA)
                       : Colors.white,
-                  fontSize: isSmallScreen ? 12 : 13,
+                  fontSize: isSmallScreen ? 11 : 12,
                   fontWeight: isSelected
                       ? FontWeight.w600
                       : FontWeight.w400,
@@ -1221,8 +1230,8 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               // Header
               Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: isSmallScreen ? 12 : 16,
-                  vertical: isSmallScreen ? 10 : 12,
+                  horizontal: isSmallScreen ? 8 : 12,
+                  vertical: isSmallScreen ? 8 : 10,
                 ),
                 decoration: BoxDecoration(
                   border: Border(
@@ -1241,39 +1250,49 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(3),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(3),
                         ),
                         child: Icon(
                           Icons.chevron_left_rounded,
                           color: Colors.white.withOpacity(0.8),
-                          size: isSmallScreen ? 16 : 18,
+                          size: isSmallScreen ? 14 : 16,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: isSmallScreen ? 8 : 10),
                     Icon(
                       Icons.speed,
                       color: const Color(0xFF01A4EA),
-                      size: isSmallScreen ? 16 : 18,
+                      size: isSmallScreen ? 14 : 16,
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: isSmallScreen ? 6 : 8),
                     Text(
                       'Speed',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: isSmallScreen ? 13 : 14,
+                        fontSize: isSmallScreen ? 12 : 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              // Speed options
-              ...speeds.map(
-                (speed) => _buildSpeedOption(speed, isSmallScreen),
+              // Speed options - scrollable
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: isSmallScreen ? 120 : 150,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: speeds.map(
+                      (speed) => _buildSpeedOption(speed, isSmallScreen),
+                    ).toList(),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1287,7 +1306,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         onTap: () {
           setState(() {
             _playbackSpeed = speed;
@@ -1298,19 +1317,19 @@ class _VimeoPlayerState extends State<VimeoPlayer>
         },
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isSmallScreen ? 12 : 16,
-            vertical: isSmallScreen ? 10 : 12,
+            horizontal: isSmallScreen ? 8 : 12,
+            vertical: isSmallScreen ? 6 : 8,
           ),
           child: Row(
             children: [
               Container(
-                width: 24,
-                height: 24,
+                width: isSmallScreen ? 18 : 20,
+                height: isSmallScreen ? 18 : 20,
                 decoration: BoxDecoration(
                   color: isSelected 
                       ? const Color(0xFF01A4EA).withOpacity(0.2)
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(3),
                   border: Border.all(
                     color: isSelected 
                         ? const Color(0xFF01A4EA)
@@ -1319,21 +1338,21 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                   ),
                 ),
                 child: isSelected
-                    ? const Icon(
+                    ? Icon(
                         Icons.check,
-                        color: Color(0xFF01A4EA),
-                        size: 14,
+                        color: const Color(0xFF01A4EA),
+                        size: isSmallScreen ? 10 : 12,
                       )
                     : null,
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: isSmallScreen ? 8 : 10),
               Text(
                 speed == 1.0 ? 'Normal' : '${speed}x',
                 style: TextStyle(
                   color: isSelected
                       ? const Color(0xFF01A4EA)
                       : Colors.white,
-                  fontSize: isSmallScreen ? 12 : 13,
+                  fontSize: isSmallScreen ? 11 : 12,
                   fontWeight: isSelected
                       ? FontWeight.w600
                       : FontWeight.w400,
