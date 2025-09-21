@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:vimeo_player_package/src/player/vimeo_player.dart';
+import 'package:vimeo_player_package/src/player/player_widget.dart';
 
 /// A wrapper for [VimeoPlayer] that supports switching between fullscreen and normal mode.
 ///

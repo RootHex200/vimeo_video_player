@@ -3,9 +3,9 @@ import 'dart:ui';
 
 import 'package:async/async.dart';
 import 'package:flutter/material.dart';
-import 'package:vimeo_player_package/src/controllers/vimeo_player_controller.dart';
-import 'package:vimeo_player_package/src/models/vimeo_meta_data.dart';
-import 'package:vimeo_player_package/src/player/raw_vimeo_player.dart';
+import 'package:vimeo_player_package/src/controllers/vimeo_controller.dart';
+import 'package:vimeo_player_package/src/models/vimeo_metadata.dart';
+import 'package:vimeo_player_package/src/player/webview_player.dart';
 
 class VimeoPlayer extends StatefulWidget {
   @override
@@ -296,9 +296,9 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               fit: StackFit.expand,
               clipBehavior: Clip.none,
               children: <Widget>[
-                RawVimeoPlayer(
+                WebViewPlayer(
                   key: widget.key,
-                  onEnded: (VimeoMetaData metadata) {
+                  onEnded: (VimeoMetadata metadata) {
                     print('ended!');
                     setState(() {
                       _uiOpacity = 1.0;

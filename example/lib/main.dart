@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:vimeo_player_package/flutter_vimeo_player.dart';
+import 'package:vimeo_player_package/vimeo_player_package.dart';
 
 void main() => runApp(MyApp());
 

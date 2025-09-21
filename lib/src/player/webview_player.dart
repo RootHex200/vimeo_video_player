@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:vimeo_player_package/src/controllers/vimeo_player_controller.dart';
-import 'package:vimeo_player_package/src/models/vimeo_meta_data.dart';
+import 'package:vimeo_player_package/src/controllers/vimeo_controller.dart';
+import 'package:vimeo_player_package/src/models/vimeo_metadata.dart';
 
-class RawVimeoPlayer extends StatefulWidget {
+class WebViewPlayer extends StatefulWidget {
   @override
   final Key? key;
-  final void Function(VimeoMetaData metaData)? onEnded;
+  final void Function(VimeoMetadata metaData)? onEnded;
 
-  const RawVimeoPlayer({this.key, this.onEnded}) : super(key: key);
+  const WebViewPlayer({this.key, this.onEnded}) : super(key: key);
 
   @override
-  _RawVimeoPlayerState createState() => _RawVimeoPlayerState();
+  _WebViewPlayerState createState() => _WebViewPlayerState();
 }
 
-class _RawVimeoPlayerState extends State<RawVimeoPlayer>
+class _WebViewPlayerState extends State<WebViewPlayer>
     with WidgetsBindingObserver {
   late VimeoPlayerController controller;
   final bool _isPlayerReady = false;
@@ -134,7 +134,7 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
                       ),
                     );
                     widget.onEnded?.call(
-                      VimeoMetaData(
+                      VimeoMetadata(
                         videoDuration: Duration(
                           seconds: controller.value.videoDuration?.round() ?? 0,
                         ),

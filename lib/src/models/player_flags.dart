@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vimeo_player_package/src/enums/playback_rate.dart';
+import 'package:vimeo_player_package/src/enums/playback_speed.dart';
 
 class VimeoPlayerFlags {
   final double height;
@@ -30,7 +30,7 @@ class VimeoPlayerFlags {
     this.muted = false,
     this.playsInLine = true,
     this.portrait = true,
-    this.speed = PlaybackRate.normal,
+    this.speed = PlaybackSpeed.normal,
     this.title = true,
     this.transparent = true,
     this.height = 0,

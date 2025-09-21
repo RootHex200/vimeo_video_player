@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:vimeo_player_package/flutter_vimeo_player.dart';
+import 'package:vimeo_player_package/vimeo_player_package.dart';
 
 class VimeoPlayerValue {
   final bool isReady;
@@ -102,10 +102,10 @@ class VimeoPlayerController extends ValueNotifier<VimeoPlayerValue> {
 class InheritedVimeoPlayer extends InheritedWidget {
   final VimeoPlayerController controller;
   const InheritedVimeoPlayer({
-    Key? key,
+    super.key,
     required this.controller,
-    required Widget child,
-  }) : super(key: key, child: child);
+    required super.child,
+  });
 
   @override
   bool updateShouldNotify(InheritedWidget oldWidget) {

@@ -1,4 +1,4 @@
-class PlaybackRate {
+class PlaybackSpeed {
   static const double twice = 2.0;
   static const double oneAndAThreeQuarter = 1.75;
   static const double oneAndAHalf = 1.5;
