@@ -816,26 +816,46 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   }
 
   Widget _buildSettingsOverlay() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isTablet = screenWidth > 600;
+    final isSmallScreen = screenWidth <= 380;
+    
+    // Calculate responsive positioning
+    final rightPosition = isSmallScreen ? 8.0 : (isTablet ? 24.0 : 16.0);
+    final bottomPosition = isSmallScreen ? 60.0 : (isTablet ? 100.0 : 80.0);
+    final overlayWidth = isSmallScreen ? 160.0 : (isTablet ? 200.0 : 180.0);
+
     if (_showSubmenu == 'quality') {
-      return _buildQualitySubmenu();
+      return _buildQualitySubmenu(rightPosition, bottomPosition, overlayWidth);
     } else if (_showSubmenu == 'speed') {
-      return _buildSpeedSubmenu();
+      return _buildSpeedSubmenu(rightPosition, bottomPosition, overlayWidth);
     }
 
     return Positioned(
-      right: 16,
-      bottom: 80,
+      right: rightPosition,
+      bottom: bottomPosition,
       child: Material(
         color: Colors.transparent,
-        child: Container(
-          width: 180,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: overlayWidth,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(8),
+            color: Colors.black.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF01A4EA).withOpacity(0.3),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.4),
-                blurRadius: 12,
+                color: Colors.black.withOpacity(0.6),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: const Color(0xFF01A4EA).withOpacity(0.1),
+                blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
             ],
@@ -844,24 +864,36 @@ class _VimeoPlayerState extends State<VimeoPlayer>
             mainAxisSize: MainAxisSize.min,
             children: [
               // Quality Option
-              _buildSimpleSettingsOption('Quality', _selectedQuality, () {
-                setState(() {
-                  _showSubmenu = 'quality';
-                });
-              }),
+              _buildEnhancedSettingsOption(
+                'Quality', 
+                _selectedQuality, 
+                Icons.hd,
+                () {
+                  setState(() {
+                    _showSubmenu = 'quality';
+                  });
+                },
+                isSmallScreen,
+              ),
 
               // Divider
-              Container(height: 1, color: Colors.white.withOpacity(0.1)),
+              Container(
+                height: 1, 
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                color: Colors.white.withOpacity(0.15),
+              ),
 
               // Speed Option
-              _buildSimpleSettingsOption(
+              _buildEnhancedSettingsOption(
                 'Speed',
                 _playbackSpeed == 1.0 ? 'Normal' : '${_playbackSpeed}x',
+                Icons.speed,
                 () {
                   setState(() {
                     _showSubmenu = 'speed';
                   });
                 },
+                isSmallScreen,
               ),
             ],
           ),
@@ -870,63 +902,106 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     );
   }
 
-  Widget _buildSimpleSettingsOption(
+  Widget _buildEnhancedSettingsOption(
     String title,
     String currentValue,
+    IconData icon,
     VoidCallback onTap,
+    bool isSmallScreen,
   ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 12 : 16, 
+            vertical: isSmallScreen ? 12 : 16,
+          ),
+          child: Row(
+            children: [
+              // Icon
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF01A4EA).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  icon,
+                  color: const Color(0xFF01A4EA),
+                  size: isSmallScreen ? 16 : 18,
+                ),
               ),
-            ),
-            const Spacer(),
-            Text(
-              currentValue,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
+              const SizedBox(width: 12),
+              
+              // Title and Value
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isSmallScreen ? 13 : 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currentValue,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: isSmallScreen ? 11 : 12,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.chevron_right,
-              color: Colors.white.withOpacity(0.6),
-              size: 16,
-            ),
-          ],
+              
+              // Chevron
+              Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white.withOpacity(0.5),
+                size: isSmallScreen ? 18 : 20,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildQualitySubmenu() {
+  Widget _buildQualitySubmenu(double rightPosition, double bottomPosition, double overlayWidth) {
     final qualities = ['Auto', '1080p', '720p', '480p', '360p'];
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth <= 380;
+    
     return Positioned(
-      right: 16,
-      bottom: 80,
+      right: rightPosition,
+      bottom: bottomPosition,
       child: Material(
         color: Colors.transparent,
-        child: Container(
-          width: 160,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: overlayWidth,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(8),
+            color: Colors.black.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF01A4EA).withOpacity(0.3),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.4),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: Colors.black.withOpacity(0.6),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -935,14 +1010,14 @@ class _VimeoPlayerState extends State<VimeoPlayer>
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 12 : 16,
+                  vertical: isSmallScreen ? 10 : 12,
                 ),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withOpacity(0.15),
                       width: 1,
                     ),
                   ),
@@ -955,19 +1030,32 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                           _showSubmenu = '';
                         });
                       },
-                      child: Icon(
-                        Icons.chevron_left,
-                        color: Colors.white.withOpacity(0.8),
-                        size: 18,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Icon(
+                          Icons.chevron_left_rounded,
+                          color: Colors.white.withOpacity(0.8),
+                          size: isSmallScreen ? 16 : 18,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.hd,
+                      color: const Color(0xFF01A4EA),
+                      size: isSmallScreen ? 16 : 18,
+                    ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Quality',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        fontSize: isSmallScreen ? 13 : 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -975,45 +1063,70 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               ),
               // Quality options
               ...qualities.map(
-                (quality) => GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedQuality = quality;
-                      _showSubmenu = '';
-                    });
-                    // Call the controller to set quality in the player
-                    controller.setQuality(quality);
-                    _showSettings = false;
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          quality,
-                          style: TextStyle(
-                            color: _selectedQuality == quality
-                                ? const Color(0xFF01A4EA)
-                                : Colors.white,
-                            fontSize: 13,
-                            fontWeight: _selectedQuality == quality
-                                ? FontWeight.w500
-                                : FontWeight.w400,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (_selectedQuality == quality)
-                          const Icon(
-                            Icons.check,
-                            color: Color(0xFF01A4EA),
-                            size: 16,
-                          ),
-                      ],
-                    ),
+                (quality) => _buildQualityOption(quality, isSmallScreen),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQualityOption(String quality, bool isSmallScreen) {
+    final isSelected = _selectedQuality == quality;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          setState(() {
+            _selectedQuality = quality;
+            _showSubmenu = '';
+            _showSettings = false;
+          });
+          controller.setQuality(quality);
+        },
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 12 : 16,
+            vertical: isSmallScreen ? 10 : 12,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? const Color(0xFF01A4EA).withOpacity(0.2)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: isSelected 
+                        ? const Color(0xFF01A4EA)
+                        : Colors.white.withOpacity(0.3),
+                    width: 1,
                   ),
+                ),
+                child: isSelected
+                    ? const Icon(
+                        Icons.check,
+                        color: Color(0xFF01A4EA),
+                        size: 14,
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                quality,
+                style: TextStyle(
+                  color: isSelected
+                      ? const Color(0xFF01A4EA)
+                      : Colors.white,
+                  fontSize: isSmallScreen ? 12 : 13,
+                  fontWeight: isSelected
+                      ? FontWeight.w600
+                      : FontWeight.w400,
                 ),
               ),
             ],
@@ -1023,23 +1136,31 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     );
   }
 
-  Widget _buildSpeedSubmenu() {
+  Widget _buildSpeedSubmenu(double rightPosition, double bottomPosition, double overlayWidth) {
     final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth <= 380;
+    
     return Positioned(
-      right: 16,
-      bottom: 80,
+      right: rightPosition,
+      bottom: bottomPosition,
       child: Material(
         color: Colors.transparent,
-        child: Container(
-          width: 160,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: overlayWidth,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(8),
+            color: Colors.black.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF01A4EA).withOpacity(0.3),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.4),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: Colors.black.withOpacity(0.6),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -1048,14 +1169,14 @@ class _VimeoPlayerState extends State<VimeoPlayer>
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 12 : 16,
+                  vertical: isSmallScreen ? 10 : 12,
                 ),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withOpacity(0.15),
                       width: 1,
                     ),
                   ),
@@ -1068,19 +1189,32 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                           _showSubmenu = '';
                         });
                       },
-                      child: Icon(
-                        Icons.chevron_left,
-                        color: Colors.white.withOpacity(0.8),
-                        size: 18,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Icon(
+                          Icons.chevron_left_rounded,
+                          color: Colors.white.withOpacity(0.8),
+                          size: isSmallScreen ? 16 : 18,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.speed,
+                      color: const Color(0xFF01A4EA),
+                      size: isSmallScreen ? 16 : 18,
+                    ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Speed',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        fontSize: isSmallScreen ? 13 : 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -1088,45 +1222,70 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               ),
               // Speed options
               ...speeds.map(
-                (speed) => GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _playbackSpeed = speed;
-                      _showSubmenu = '';
-                      _showSettings = false;
-                    });
-                    // Call the controller to set playback rate in the player
-                    controller.setPlaybackRate(speed);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          speed == 1.0 ? 'Normal' : '${speed}x',
-                          style: TextStyle(
-                            color: _playbackSpeed == speed
-                                ? const Color(0xFF01A4EA)
-                                : Colors.white,
-                            fontSize: 13,
-                            fontWeight: _playbackSpeed == speed
-                                ? FontWeight.w500
-                                : FontWeight.w400,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (_playbackSpeed == speed)
-                          const Icon(
-                            Icons.check,
-                            color: Color(0xFF01A4EA),
-                            size: 16,
-                          ),
-                      ],
-                    ),
+                (speed) => _buildSpeedOption(speed, isSmallScreen),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpeedOption(double speed, bool isSmallScreen) {
+    final isSelected = _playbackSpeed == speed;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          setState(() {
+            _playbackSpeed = speed;
+            _showSubmenu = '';
+            _showSettings = false;
+          });
+          controller.setPlaybackRate(speed);
+        },
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 12 : 16,
+            vertical: isSmallScreen ? 10 : 12,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? const Color(0xFF01A4EA).withOpacity(0.2)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: isSelected 
+                        ? const Color(0xFF01A4EA)
+                        : Colors.white.withOpacity(0.3),
+                    width: 1,
                   ),
+                ),
+                child: isSelected
+                    ? const Icon(
+                        Icons.check,
+                        color: Color(0xFF01A4EA),
+                        size: 14,
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                speed == 1.0 ? 'Normal' : '${speed}x',
+                style: TextStyle(
+                  color: isSelected
+                      ? const Color(0xFF01A4EA)
+                      : Colors.white,
+                  fontSize: isSmallScreen ? 12 : 13,
+                  fontWeight: isSelected
+                      ? FontWeight.w600
+                      : FontWeight.w400,
                 ),
               ),
             ],
