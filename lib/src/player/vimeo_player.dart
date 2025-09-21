@@ -61,6 +61,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   Timer? _seekingTimer; // Timer to manage seeking state
   double? _seekingPosition; // Track position during seeking
   bool _isSeeking = false; // Flag to prevent position updates during seek
+  double _displayPosition = 0.0; // Stable position for display
 
   void listener() async {
     if (controller.value.isReady) {
@@ -81,6 +82,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       // Only update position if we're not currently seeking
       if (controller.value.videoPosition != null && !_isSeeking) {
         _position = controller.value.videoPosition!;
+        _displayPosition = _position; // Update display position
       }
     });
 
@@ -404,9 +406,10 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   }
 
   _getTimestamp() {
-    // Use seeking position if user is currently dragging the slider
-    final currentPos =
-        _seekingPosition ?? controller.value.videoPosition ?? 0.0;
+    // Use stable display position to prevent jumping
+    final currentPos = _isSeeking 
+        ? (_seekingPosition ?? _displayPosition)
+        : _displayPosition;
     final totalDuration = controller.value.videoDuration ?? 0.0;
 
     var position = _printDuration(Duration(seconds: currentPos.round()));
@@ -638,6 +641,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
             setState(() {
               _position = end; // Immediately update position
               _seekingPosition = end;
+              _displayPosition = end; // Update display position
             });
             controller.seekTo(end.roundToDouble());
             // Clear seeking state after a delay
@@ -659,6 +663,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
           onChanged: (value) {
             setState(() {
               _seekingPosition = value;
+              _displayPosition = value; // Update display position in real-time
             });
           },
         ),
