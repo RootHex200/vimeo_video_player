@@ -42,7 +42,6 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   double _aspectRatio = 16 / 9;
   bool _seekingF = false;
   bool _seekingB = false;
-  bool _sliderSeeking = false; // Separate flag for slider seeking
   bool _isPlayerReady = false;
   bool _centerUiVisible = true;
   bool _bottomUiVisible = false;
@@ -61,6 +60,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   Timer? t2;
   Timer? _seekingTimer; // Timer to manage seeking state
   double? _seekingPosition; // Track position during seeking
+  bool _isSeeking = false; // Flag to prevent position updates during seek
 
   void listener() async {
     if (controller.value.isReady) {
@@ -78,15 +78,11 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       _isPlaying = controller.value.isPlaying;
       _isBuffering = controller.value.isBuffering;
 
-      // Only update position if we're not currently seeking with slider
-      // This prevents the slider from jumping back during user interaction or buffering
-      if (controller.value.videoPosition != null && !_sliderSeeking) {
+      // Only update position if we're not currently seeking
+      if (controller.value.videoPosition != null && !_isSeeking) {
         _position = controller.value.videoPosition!;
       }
     });
-
-    // Simple approach: let the timer handle clearing the seeking state
-    // This prevents any premature clearing during buffering
 
     if (controller.value.videoWidth != null &&
         controller.value.videoHeight != null) {
@@ -134,13 +130,6 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     super.dispose();
   }
 
-  void _clearSeekingState() {
-    setState(() {
-      _sliderSeeking = false;
-      _seekingPosition = null;
-    });
-    _seekingTimer?.cancel();
-  }
 
   _hideUi() {
     setState(() {
@@ -641,32 +630,35 @@ class _VimeoPlayerState extends State<VimeoPlayer>
         child: Slider(
           onChangeStart: (val) {
             setState(() {
-              _sliderSeeking = true;
-              _seekingPosition = val; // Initialize seeking position
+              _isSeeking = true;
+              _seekingPosition = val;
             });
           },
           onChangeEnd: (end) {
+            setState(() {
+              _position = end; // Immediately update position
+              _seekingPosition = end;
+            });
             controller.seekTo(end.roundToDouble());
-            // Keep seeking state active until video actually starts playing from new position
+            // Clear seeking state after a delay
             _seekingTimer?.cancel();
-            _seekingTimer = Timer(Duration(seconds: 2), () {
-              // Clear seeking state after 2 seconds - simple approach
-              if (_sliderSeeking) {
-                _clearSeekingState();
-              }
+            _seekingTimer = Timer(Duration(milliseconds: 1500), () {
+              setState(() {
+                _isSeeking = false;
+                _seekingPosition = null;
+              });
             });
           },
           min: 0,
           max: controller.value.videoDuration != null
               ? controller.value.videoDuration! + 1.0
               : 0.0,
-          value: (_seekingPosition ?? _position).clamp(
-            0.0,
-            controller.value.videoDuration ?? 0.0,
-          ),
+          value: _isSeeking 
+            ? (_seekingPosition ?? _position).clamp(0.0, controller.value.videoDuration ?? 0.0)
+            : _position.clamp(0.0, controller.value.videoDuration ?? 0.0),
           onChanged: (value) {
             setState(() {
-              _seekingPosition = value; // Update seeking position immediately
+              _seekingPosition = value;
             });
           },
         ),

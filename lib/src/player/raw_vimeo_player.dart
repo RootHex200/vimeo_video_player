@@ -117,10 +117,10 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
                 );
               },
             )
-            ..addJavaScriptHandler(
-              handlerName: 'StateChange',
-              callback: (params) {
-                switch (params.first) {
+             ..addJavaScriptHandler(
+               handlerName: 'StateChange',
+               callback: (params) {
+                 switch (params.first) {
                   case -2:
                     controller.updateValue(
                       controller.value.copyWith(isBuffering: true),
@@ -164,8 +164,8 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
                   default:
                     print('default player state');
                 }
-              },
-            );
+               },
+             );
         },
         onLoadStop: (_, __) {
           if (_isPlayerReady) {
@@ -294,15 +294,14 @@ class _RawVimeoPlayerState extends State<RawVimeoPlayer>
         }
 
         function seekTo(delta) {
-          vimPlayer.getCurrentTime().then(function(seconds) {
-            console.log('delta: ' + (delta));
-            console.log('duration: ' + videoData['duration']);
-            if (videoData['duration'] > delta) {
-              vimPlayer.setCurrentTime(delta).then(function(t) {
-                console.log('seekedto: ' + (t));
-              });
-            }
-          });
+          console.log('Seeking to:', delta);
+          if (videoData['duration'] > delta) {
+            vimPlayer.setCurrentTime(delta).then(function(t) {
+              console.log('Seek completed to:', t);
+            }).catch(function(error) {
+              console.log('Seek error:', error);
+            });
+          }
         }
 
         function reset() {
