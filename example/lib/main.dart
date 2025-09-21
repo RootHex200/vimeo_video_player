@@ -69,10 +69,48 @@ class _MyHomePageState extends State<MyHomePage> {
         if (mounted) {
           setState(() {
             _videoTitle = controller.value.videoTitle ?? 'Unknown';
+            _isFullScreen = controller.value.isFullscreen;
           });
         }
       });
     }
+  }
+
+  void _toggleFullscreen() {
+    setState(() {
+      _isFullScreen = !_isFullScreen;
+    });
+    
+    if (_isFullScreen) {
+      // Force portrait orientation for fullscreen
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+      // Hide system UI for immersive experience
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      // Update controller state
+      controller.updateValue(controller.value.copyWith(isFullscreen: true));
+    } else {
+      _exitFullscreen();
+    }
+  }
+
+  void _exitFullscreen() {
+    setState(() {
+      _isFullScreen = false;
+    });
+    
+    // Allow all orientations when exiting fullscreen
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    // Restore system UI
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    // Update controller state
+    controller.updateValue(controller.value.copyWith(isFullscreen: false));
   }
 
   @override
@@ -84,59 +122,81 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return  VimeoBuilder(
-        player: VimeoPlayer(
-          controller: controller,
-          onScreenToggled: (){
-           if(Orientation.landscape==MediaQuery.of(context).orientation){
-             SystemChrome.setPreferredOrientations([
-              DeviceOrientation.portraitUp,
-              
-            ]);
-           }else{
-               SystemChrome.setPreferredOrientations([
-              DeviceOrientation.landscapeLeft,
-              DeviceOrientation.landscapeRight,
-              
-            ]);
-           }
-          },
-          skipDuration: 10,
-          onReady: () {
-            setState(() {
-              _playerReady = true;
-            });
+    return PopScope(
+      canPop: !_isFullScreen,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_isFullScreen) {
+          _exitFullscreen();
+        }
+      },
+      child: WillPopScope(
+        onWillPop: () async {
+          if (_isFullScreen) {
+            _exitFullscreen();
+            return false; // Don't pop, just exit fullscreen
+          }
+          return true; // Allow normal pop
+        },
+        child: VimeoBuilder(
+          player: VimeoPlayer(
+            controller: controller,
+            onScreenToggled: _toggleFullscreen,
+            skipDuration: 10,
+            onReady: () {
+              setState(() {
+                _playerReady = true;
+              });
+            },
+          ),
+          builder: (context, player) {
+            return Scaffold(
+              appBar: _isFullScreen ? null : AppBar(title: Text(widget.title)),
+              body: _isFullScreen 
+                ? Container(
+                    // Fullscreen container - takes entire screen
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: Colors.black,
+                    child: player,
+                  )
+                : Center(
+                    child: Column(
+                      children: <Widget>[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  if (_height == 300) {
+                                    _height = 500;
+                                  } else {
+                                    _height = 300;
+                                  }
+                                });
+                              }, 
+                              child: Text(_height == 300 ? "Small" : "Large")
+                            ),
+                            ElevatedButton(
+                              onPressed: _toggleFullscreen,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _isFullScreen ? Colors.red : Colors.green,
+                              ),
+                              child: Text(_isFullScreen ? "Exit Fullscreen" : "Fullscreen")
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(height: _height, child: player),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+            );
           },
         ),
-        builder: (context, player) {
-          return Scaffold(
-             appBar: _isFullScreen ? null : AppBar(title: Text(widget.title)),
-            body: Center(
-              child: Column(
-                children: <Widget>[
-                  Container(
-                    child: ElevatedButton(onPressed: (){
-                      setState(() {
-                        if(_height==300){
-                          _height=500;
-                        }else{
-                          _height=300;
-                        }
-                      });
-                    }, child: Text(_height==300?"Protrait":"Landscape")),
-                  ),
-                  if (!_isFullScreen) ...[
-                    const SizedBox(height: 20),
-                    Container(height: _height, child: player),
-                    const SizedBox(height: 20),
-                  ] else
-                    player,
-                ],
-              ),
-            ),
-          );
-        },
-      
+      ),
     );
   }
 }
