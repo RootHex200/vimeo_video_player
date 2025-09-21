@@ -117,42 +117,18 @@ class _MyHomePageState extends State<MyHomePage> {
                   Container(
                     child: ElevatedButton(onPressed: (){
                       setState(() {
-                        _height=500;
+                        if(_height==300){
+                          _height=500;
+                        }else{
+                          _height=300;
+                        }
                       });
-                    }, child: Text("Protrait")),
+                    }, child: Text(_height==300?"Protrait":"Landscape")),
                   ),
                   if (!_isFullScreen) ...[
                     const SizedBox(height: 20),
-                    Text(
-                      _videoTitle,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
                     Container(height: _height, child: player),
                     const SizedBox(height: 20),
-                    Text(
-                      _videoTitle +
-                          (controller.value.isBuffering
-                              ? " Buffering"
-                              : controller.value.isPlaying
-                              ? " Playing"
-                              : " Ready!"),
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Rotate your device to landscape for fullscreen mode!',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.grey,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
                   ] else
                     player,
                 ],
