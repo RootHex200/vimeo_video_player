@@ -16,6 +16,7 @@ class VimeoPlayer extends StatefulWidget {
   final double aspectRatio;
   final int skipDuration;
   final VoidCallback? onReady;
+  final VoidCallback? onScreenToggled;
 
   const VimeoPlayer({
     this.key,
@@ -25,6 +26,7 @@ class VimeoPlayer extends StatefulWidget {
     this.aspectRatio = 16 / 9,
     this.skipDuration = 5,
     this.onReady,
+    this.onScreenToggled,
   }) : super(key: key);
 
   @override
@@ -808,7 +810,8 @@ class _VimeoPlayerState extends State<VimeoPlayer>
         _buildVimeoControlButton(
           icon: Icons.fullscreen,
           onTap: () {
-            // Fullscreen functionality
+            // Screen Toggle functionality
+            widget.onScreenToggled?.call();
           },
         ),
       ],

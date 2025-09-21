@@ -21,8 +21,6 @@ import 'package:vimeo_player_package/src/player/vimeo_player.dart';
 ///     controller: controller,
 ///     onReady: () => print('Player ready'),
 ///   ),
-///   onEnterFullScreen: () => print('Entered fullscreen'),
-///   onExitFullScreen: () => print('Exited fullscreen'),
 ///   builder: (context, player) {
 ///     return Column(
 ///       children: [
@@ -45,8 +43,6 @@ class VimeoBuilder extends StatefulWidget {
     super.key,
     required this.player,
     required this.builder,
-    this.onEnterFullScreen,
-    this.onExitFullScreen,
   });
 
   /// The actual [VimeoPlayer].
@@ -54,12 +50,6 @@ class VimeoBuilder extends StatefulWidget {
 
   /// Builds the widget below this [builder].
   final Widget Function(BuildContext, Widget) builder;
-
-  /// Callback to notify that the player has entered fullscreen.
-  final VoidCallback? onEnterFullScreen;
-
-  /// Callback to notify that the player has exited fullscreen.
-  final VoidCallback? onExitFullScreen;
 
   @override
   State<VimeoBuilder> createState() => _VimeoBuilderState();
@@ -95,7 +85,7 @@ class _VimeoBuilderState extends State<VimeoBuilder>
         });
         controller.updateValue(controller.value.copyWith(isFullscreen: true));
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-        widget.onEnterFullScreen?.call();
+        
       }
     } else {
       // Portrait orientation
@@ -105,7 +95,7 @@ class _VimeoBuilderState extends State<VimeoBuilder>
         });
         controller.updateValue(controller.value.copyWith(isFullscreen: false));
         SystemChrome.restoreSystemUIOverlays();
-        widget.onExitFullScreen?.call();
+        
       }
     }
     super.didChangeMetrics();
@@ -120,11 +110,11 @@ class _VimeoBuilderState extends State<VimeoBuilder>
     if (_isFullScreen) {
       controller.updateValue(controller.value.copyWith(isFullscreen: true));
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      widget.onEnterFullScreen?.call();
+      
     } else {
       controller.updateValue(controller.value.copyWith(isFullscreen: false));
       SystemChrome.restoreSystemUIOverlays();
-      widget.onExitFullScreen?.call();
+
     }
   }
 
