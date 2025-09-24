@@ -108,14 +108,6 @@ class _MyHomePageState extends State<MyHomePage> {
       _exitFullscreen();
     }
   }
-
-  // void _setPortraitDimensions() {
-  //   // Get screen dimensions for portrait video
-  //   final screenSize = MediaQuery.of(context).size;
-  //   _fullscreenWidth = screenSize.width * 0.9; // 90% of screen width
-  //   _fullscreenHeight = screenSize.width * 0.6; // Portrait aspect ratio
-  // }
-
   void _exitFullscreen() {
     setState(() {
       _isFullScreen = false;

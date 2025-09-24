@@ -120,7 +120,7 @@ class _VimeoBuilderState extends State<VimeoBuilder>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
+    return OrientationBuilder(
       builder: (context, constraints) {
         final orientation = MediaQuery.orientationOf(context);
         final height = MediaQuery.sizeOf(context).height;

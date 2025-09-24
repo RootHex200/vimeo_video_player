@@ -11,8 +11,6 @@ class VimeoPlayer extends StatefulWidget {
   @override
   final Key? key;
   final VimeoPlayerController controller;
-  final double? height;
-  final double? width;
   final double aspectRatio;
   final int skipDuration;
   final VoidCallback? onReady;
@@ -22,8 +20,6 @@ class VimeoPlayer extends StatefulWidget {
   const VimeoPlayer({
     this.key,
     required this.controller,
-    this.width,
-    this.height,
     this.aspectRatio = 16 / 9,
     this.skipDuration = 5,
     this.onReady,
@@ -48,7 +44,6 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   bool _centerUiVisible = true;
   bool _bottomUiVisible = false;
   double _uiOpacity = 1.0;
-  bool _isBuffering = false;
   bool _isPlaying = false;
   int _seekDuration = 0;
   bool _showSettings = false;
@@ -79,7 +74,6 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     // Always update state to ensure UI reflects current values
     setState(() {
       _isPlaying = controller.value.isPlaying;
-      _isBuffering = controller.value.isBuffering;
 
       // Only update position if we're not currently seeking
       if (controller.value.videoPosition != null && !_isSeeking) {
@@ -105,7 +99,6 @@ class _VimeoPlayerState extends State<VimeoPlayer>
 
     completer = CancelableCompleter(
       onCancel: () {
-        print('onCancel');
         setState(() {
           _bottomUiVisible = true;
           _uiOpacity = 1.0;
@@ -291,7 +284,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       child: InheritedVimeoPlayer(
         controller: controller,
         child: SizedBox(
-          width: widget.width ?? MediaQuery.of(context).size.width,
+          width: MediaQuery.of(context).size.width,
           child: AspectRatio(
             aspectRatio: _aspectRatio,
             child: Stack(
@@ -301,7 +294,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 WebViewPlayer(
                   key: widget.key,
                   onEnded: (VimeoMetadata metadata) {
-                    print('ended!');
+                   
                     setState(() {
                       _uiOpacity = 1.0;
                       _bottomUiVisible = false;
@@ -311,8 +304,6 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                     controller.reload();
                   },
                   isFullscreen: controller.value.isFullscreen,
-                  customWidth: controller.value.isFullscreen && widget.portrait ? widget.width : null,
-                  customHeight: controller.value.isFullscreen && widget.portrait ? widget.height : null,
                 ),
                 GestureDetector(
                   onTap: () {
@@ -491,27 +482,6 @@ class _VimeoPlayerState extends State<VimeoPlayer>
           ),
         );
       },
-    );
-  }
-
-  Widget _buildModernLoadingIndicator() {
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: const Center(
-        child: SizedBox(
-          width: 30,
-          height: 30,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF01A4EA)),
-          ),
-        ),
-      ),
     );
   }
 

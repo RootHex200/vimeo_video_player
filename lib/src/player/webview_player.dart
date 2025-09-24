@@ -7,15 +7,11 @@ class WebViewPlayer extends StatefulWidget {
   @override
   final Key? key;
   final void Function(VimeoMetadata metaData)? onEnded;
-  final double? customWidth;
-  final double? customHeight;
   final bool isFullscreen;
 
   const WebViewPlayer({
     this.key, 
     this.onEnded,
-    this.customWidth,
-    this.customHeight,
     this.isFullscreen = false,
   }) : super(key: key);
 
@@ -186,13 +182,6 @@ class _WebViewPlayerState extends State<WebViewPlayer>
   }
 
   String player(double width) {
-    // Use custom dimensions if provided and in fullscreen mode
-    final effectiveWidth = widget.isFullscreen && widget.customWidth != null 
-        ? widget.customWidth! 
-        : width;
-    final effectiveHeight = widget.isFullscreen && widget.customHeight != null 
-        ? widget.customHeight! 
-        : null;
     
     var player =
         '''<html>
@@ -241,8 +230,6 @@ class _WebViewPlayerState extends State<WebViewPlayer>
           speed: true,
           controls: false,
           dnt: true,
-          ${widget.isFullscreen && widget.customWidth != null ? 'width: $effectiveWidth,' : ''}
-          ${widget.isFullscreen && widget.customHeight != null ? 'height: $effectiveHeight,' : ''}
         };
         
         var videoData = {};
