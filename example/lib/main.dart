@@ -53,6 +53,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String _videoTitle = 'Loading...';
   bool _isFullScreen = false;
   double _height=300;
+  double? _fullscreenWidth;
+  double? _fullscreenHeight;
   @override
   void initState() {
     super.initState();
@@ -82,6 +84,9 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     
     if (_isFullScreen) {
+      // Set custom dimensions for portrait video in fullscreen
+      _setFullscreenDimensions();
+      
       // Force portrait orientation for fullscreen
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.portraitUp,
@@ -93,6 +98,37 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       _exitFullscreen();
     }
+  }
+
+  void _setFullscreenDimensions() {
+    // Get screen dimensions
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    
+    // For portrait videos, you can customize these dimensions
+    // Example: Set to 80% of screen width and maintain aspect ratio
+    _fullscreenWidth = screenWidth * 0.8;
+    _fullscreenHeight = _fullscreenWidth! * (9 / 16); // 16:9 aspect ratio
+    
+    // Alternative: You can set specific dimensions
+    // _fullscreenWidth = 400.0;
+    // _fullscreenHeight = 600.0;
+  }
+
+  void _setCustomFullscreenDimensions() {
+    // Get screen dimensions
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
+    
+    // Custom dimensions for portrait video in fullscreen
+    // Example: Set specific dimensions that work well for portrait videos
+    _fullscreenWidth = screenWidth; // 90% of screen width
+    _fullscreenHeight = screenHeight; // 70% of screen height
+    
+    // You can also set fixed dimensions:
+    // _fullscreenWidth = 350.0;
+    // _fullscreenHeight = 600.0;
   }
 
   void _exitFullscreen() {
@@ -143,6 +179,8 @@ class _MyHomePageState extends State<MyHomePage> {
             controller: controller,
             onScreenToggled: _toggleFullscreen,
             skipDuration: 10,
+            width: _isFullScreen ? _fullscreenWidth : null,
+            height: _isFullScreen ? _fullscreenHeight : null,
             onReady: () {
               setState(() {
                 _playerReady = true;
@@ -177,6 +215,17 @@ class _MyHomePageState extends State<MyHomePage> {
                                 });
                               }, 
                               child: Text(_height == 300 ? "Small" : "Large")
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                // Set custom fullscreen dimensions for portrait video
+                                _setCustomFullscreenDimensions();
+                                _toggleFullscreen();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                              ),
+                              child: Text("Custom Fullscreen")
                             ),
                             ElevatedButton(
                               onPressed: _toggleFullscreen,

@@ -308,6 +308,9 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                     });
                     controller.reload();
                   },
+                  isFullscreen: controller.value.isFullscreen,
+                  customWidth: controller.value.isFullscreen ? widget.width : null,
+                  customHeight: controller.value.isFullscreen ? widget.height : null,
                 ),
                 GestureDetector(
                   onTap: () {
@@ -863,7 +866,6 @@ class _VimeoPlayerState extends State<VimeoPlayer>
 
   Widget _buildSettingsOverlay() {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
     final isTablet = screenWidth > 600;
     final isSmallScreen = screenWidth <= 380;
     
