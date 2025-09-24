@@ -220,7 +220,7 @@ class _WebViewPlayerState extends State<WebViewPlayer>
           max-height: 100%;
           max-width: 100%;
           object-fit: contain;
-          height:${widget.isFullscreen ? '50%' : '100%'};
+          height:100%;
           width: 100%;
         }
       </style>
