@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:async/async.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:vimeo_player_package/src/controllers/vimeo_controller.dart';
 import 'package:vimeo_player_package/src/models/vimeo_metadata.dart';
 import 'package:vimeo_player_package/src/player/webview_player.dart';
@@ -59,6 +60,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   double? _seekingPosition; // Track position during seeking
   bool _isSeeking = false; // Flag to prevent position updates during seek
   double _displayPosition = 0.0; // Stable position for display
+  bool _isFullScreen = false; // Internal fullscreen state
 
   void listener() async {
     if (controller.value.isReady) {
@@ -125,6 +127,53 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     _seekingTimer?.cancel();
     controller.dispose();
     super.dispose();
+  }
+
+  void _toggleFullscreen() {
+    setState(() {
+      _isFullScreen = !_isFullScreen;
+    });
+    
+    if (_isFullScreen) {
+      if (widget.portrait) {
+        // Force portrait orientation for portrait videos
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+        ]);
+      } else {
+        // Force landscape orientation for landscape videos
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      }
+      
+      // Hide system UI for immersive experience
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      // Update controller state
+      controller.updateValue(controller.value.copyWith(isFullscreen: true));
+    } else {
+      _exitFullscreen();
+    }
+  }
+
+  void _exitFullscreen() {
+    setState(() {
+      _isFullScreen = false;
+    });
+    
+    // Allow all orientations when exiting fullscreen
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    
+    // Restore system UI
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    // Update controller state
+    controller.updateValue(controller.value.copyWith(isFullscreen: false));
   }
 
 
@@ -303,7 +352,8 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                     });
                     controller.reload();
                   },
-                  isFullscreen: controller.value.isFullscreen,
+                  isFullscreen: _isFullScreen,
+                  portrait: widget.portrait,
                 ),
                 GestureDetector(
                   onTap: () {
@@ -800,7 +850,9 @@ class _VimeoPlayerState extends State<VimeoPlayer>
         _buildVimeoControlButton(
           icon: Icons.fullscreen,
           onTap: () {
-            // Screen Toggle functionality
+            // Internal fullscreen toggle
+            _toggleFullscreen();
+            // Also call external callback if provided
             widget.onScreenToggled?.call();
           },
         ),

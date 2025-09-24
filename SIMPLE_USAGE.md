@@ -1,43 +1,14 @@
-# Simple VimeoPlayer Usage
+# Super Simple VimeoPlayer Usage
 
-## Portrait vs Landscape Video Control
+## No Complex Logic Needed! 🎉
 
-The VimeoPlayer now has a simple `portrait` parameter that automatically handles fullscreen logic.
+The VimeoPlayer now handles ALL fullscreen logic internally. You just need to set `portrait: true/false` and everything works automatically!
 
-### Basic Usage
-
-```dart
-// For Portrait Videos (like TikTok, Instagram Stories)
-VimeoPlayer(
-  controller: controller,
-  portrait: true,  // This enables portrait fullscreen logic
-  onScreenToggled: _toggleFullscreen,
-)
-
-// For Landscape Videos (like YouTube)
-VimeoPlayer(
-  controller: controller,
-  portrait: false, // This enables landscape fullscreen logic
-  onScreenToggled: _toggleFullscreen,
-)
-```
-
-### What happens automatically:
-
-#### When `portrait: true`:
-- Fullscreen mode uses portrait-optimized dimensions
-- Video width: 90% of screen width
-- Video height: 60% of screen width (portrait aspect ratio)
-- Perfect for vertical videos
-
-#### When `portrait: false`:
-- Fullscreen mode uses landscape-optimized dimensions
-- Video takes full screen with standard aspect ratio
-- Perfect for horizontal videos
-
-### Complete Example:
+## Basic Usage
 
 ```dart
+import 'package:vimeo_player_package/vimeo_player_package.dart';
+
 class MyVideoPlayer extends StatefulWidget {
   @override
   _MyVideoPlayerState createState() => _MyVideoPlayerState();
@@ -45,35 +16,147 @@ class MyVideoPlayer extends StatefulWidget {
 
 class _MyVideoPlayerState extends State<MyVideoPlayer> {
   late VimeoPlayerController controller;
-  bool _isPortraitMode = true; // Toggle between portrait/landscape
 
   @override
   void initState() {
     super.initState();
     controller = VimeoPlayerController(
-      initialVideoId: 'your_video_id',
+      initialVideoId: 'your_vimeo_video_id',
       flags: VimeoPlayerFlags(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: VimeoPlayer(
+    return VimeoBuilder(
+      player: VimeoPlayer(
         controller: controller,
-        portrait: _isPortraitMode, // Simple boolean parameter!
-        onScreenToggled: () {
-          // Handle fullscreen toggle
-        },
+        portrait: true, // That's it! No other logic needed
         onReady: () {
           print('Player ready!');
         },
       ),
+      builder: (context, player) {
+        return Scaffold(
+          appBar: AppBar(title: Text('Video Player')),
+          body: Center(child: player),
+        );
+      },
     );
   }
 }
 ```
 
-### That's it! 
+## What Happens Automatically:
 
-No complex logic needed. Just set `portrait: true` for vertical videos and `portrait: false` for horizontal videos. The player automatically handles all the fullscreen dimension calculations.
+### When `portrait: true`:
+- ✅ Fullscreen button automatically handles portrait orientation
+- ✅ Video dimensions: 90% width, 60% height (portrait aspect ratio)
+- ✅ Device rotates to portrait in fullscreen
+- ✅ System UI hides for immersive experience
+- ✅ Perfect for TikTok, Instagram Stories, vertical videos
+
+### When `portrait: false`:
+- ✅ Fullscreen button automatically handles landscape orientation  
+- ✅ Video dimensions: 90% width, 56% height (16:9 aspect ratio)
+- ✅ Device rotates to landscape in fullscreen
+- ✅ System UI hides for immersive experience
+- ✅ Perfect for YouTube, movies, horizontal videos
+
+## No More Complex Code!
+
+### ❌ Before (Complex):
+```dart
+// You had to write all this complex logic:
+void _toggleFullscreen() {
+  setState(() {
+    _isFullScreen = !_isFullScreen;
+  });
+  
+  if (_isFullScreen) {
+    if (_isPortraitMode) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+    } else {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    controller.updateValue(controller.value.copyWith(isFullscreen: true));
+  } else {
+    // More complex exit logic...
+  }
+}
+```
+
+### ✅ Now (Simple):
+```dart
+// Just this one line:
+VimeoPlayer(
+  controller: controller,
+  portrait: true, // or false
+)
+```
+
+## Complete Example:
+
+```dart
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: MyVideoPlayer(),
+    );
+  }
+}
+
+class MyVideoPlayer extends StatefulWidget {
+  @override
+  _MyVideoPlayerState createState() => _MyVideoPlayerState();
+}
+
+class _MyVideoPlayerState extends State<MyVideoPlayer> {
+  late VimeoPlayerController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = VimeoPlayerController(
+      initialVideoId: '1003797907', // Your Vimeo video ID
+      flags: VimeoPlayerFlags(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return VimeoBuilder(
+      player: VimeoPlayer(
+        controller: controller,
+        portrait: true, // Set to false for landscape videos
+        onReady: () {
+          print('Player is ready!');
+        },
+      ),
+      builder: (context, player) {
+        return Scaffold(
+          appBar: AppBar(title: Text('My Video')),
+          body: Center(child: player),
+        );
+      },
+    );
+  }
+}
+```
+
+## That's It! 🚀
+
+- No orientation handling code needed
+- No fullscreen logic needed  
+- No dimension calculations needed
+- No SystemChrome calls needed
+- Just set `portrait: true/false` and everything works!
+
+The package handles all the complexity internally, so you can focus on building your app! 🎯

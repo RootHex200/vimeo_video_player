@@ -8,11 +8,13 @@ class WebViewPlayer extends StatefulWidget {
   final Key? key;
   final void Function(VimeoMetadata metaData)? onEnded;
   final bool isFullscreen;
+  final bool portrait;
 
   const WebViewPlayer({
     this.key, 
     this.onEnded,
     this.isFullscreen = false,
+    this.portrait = false,
   }) : super(key: key);
 
   @override
@@ -182,6 +184,19 @@ class _WebViewPlayerState extends State<WebViewPlayer>
   }
 
   String player(double width) {
+    // Calculate dimensions based on fullscreen and portrait mode
+    double? effectiveWidth;
+    double? effectiveHeight;
+    
+    if (widget.isFullscreen) {
+      final screenWidth = width;
+      effectiveWidth = screenWidth * 0.9; // 90% of screen width
+      // Use portrait parameter to determine aspect ratio
+      effectiveHeight = screenWidth * (widget.portrait ? 0.6 : 0.56); // Portrait: 0.6, Landscape: 0.56 (16:9)
+    } else {
+      effectiveWidth = width;
+      effectiveHeight = null;
+    }
     
     var player =
         '''<html>
@@ -209,8 +224,8 @@ class _WebViewPlayerState extends State<WebViewPlayer>
           max-height: 100%;
           max-width: 100%;
           object-fit: contain;
-          height:100%;
-          width: 100%;
+          ${'width: ${effectiveWidth.toInt()}px;'}
+          ${effectiveHeight != null ? 'height: ${effectiveHeight.toInt()}px;' : 'height: 100%;'}
         }
       </style>
       <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
@@ -229,7 +244,7 @@ class _WebViewPlayerState extends State<WebViewPlayer>
           autoplay: ${controller.flags.autoPlay},
           speed: true,
           controls: false,
-          dnt: true,
+          dnt: true${',\n          width: ${effectiveWidth.toInt()}'}${effectiveHeight != null ? ',\n          height: ${effectiveHeight.toInt()}' : ''}
         };
         
         var videoData = {};

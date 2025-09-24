@@ -51,10 +51,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late VimeoPlayerController controller;
   bool _playerReady = false;
   String _videoTitle = 'Loading...';
-  bool _isFullScreen = false;
   final double _height=300;
-  double? _fullscreenWidth;
-  double? _fullscreenHeight;
   final bool _isPortraitMode = false;
   @override
   void initState() {
@@ -80,51 +77,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _toggleFullscreen() {
-    setState(() {
-      _isFullScreen = !_isFullScreen;
-    });
-    
-    if (_isFullScreen) {
-      if(_isPortraitMode){
-              // Set custom dimensions for portrait video in fullscreen
-     // _setPortraitDimensions();
-      
-      // Force portrait orientation for fullscreen
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-      ]);
-      // Hide system UI for immersive experience
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      }else{
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      }
-      // Update controller state
-      controller.updateValue(controller.value.copyWith(isFullscreen: true));
-    } else {
-      _exitFullscreen();
-    }
+    // This method is now handled internally by the package
+    // Just call the external callback if needed
+    print('Fullscreen toggled externally');
   }
-  void _exitFullscreen() {
-    setState(() {
-      _isFullScreen = false;
-    });
-    
-    // Allow all orientations when exiting fullscreen
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    // Restore system UI
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    // Update controller state
-    controller.updateValue(controller.value.copyWith(isFullscreen: false));
-  }
+  // Fullscreen logic is now handled internally by the package
 
   @override
   void dispose() {
@@ -135,64 +92,31 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: !_isFullScreen,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (_isFullScreen) {
-          _exitFullscreen();
-        }
-      },
-      child: WillPopScope(
-        onWillPop: () async {
-          if (_isFullScreen) {
-            _exitFullscreen();
-            return false; // Don't pop, just exit fullscreen
-          }
-          return true; // Allow normal pop
+    return VimeoBuilder(
+      player: VimeoPlayer(
+        controller: controller,
+        skipDuration: 10,
+        portrait: _isPortraitMode, // Set to true for portrait video, false for landscape
+        onReady: () {
+          setState(() {
+            _playerReady = true;
+          });
         },
-        child: VimeoBuilder(
-          player: VimeoPlayer(
-            controller: controller,
-            onScreenToggled: _toggleFullscreen,
-            skipDuration: 10,
-            portrait: _isPortraitMode, // Set to true for portrait video, false for landscape
-            onReady: () {
-              setState(() {
-                _playerReady = true;
-              });
-            },
-          ),
-          builder: (context, player) {
-            return Scaffold(
-              appBar: _isFullScreen ? null : AppBar(title: Text(widget.title)),
-              body: _isFullScreen 
-                ? Container(
-                    // Fullscreen container - takes entire screen
-                    width: double.infinity,
-                    height: double.infinity,
-                    color: Colors.black,
-                    child: player,
-                  )
-                : Center(
-                    child: Column(
-                      children: <Widget>[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                     
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(height: _height, child: player),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
-            );
-          },
-        ),
       ),
+      builder: (context, player) {
+        return Scaffold(
+          appBar: AppBar(title: Text(widget.title)),
+          body: Center(
+            child: Column(
+              children: <Widget>[
+                const SizedBox(height: 20),
+                SizedBox(height: _height, child: player),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
