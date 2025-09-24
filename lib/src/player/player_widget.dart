@@ -17,6 +17,7 @@ class VimeoPlayer extends StatefulWidget {
   final int skipDuration;
   final VoidCallback? onReady;
   final VoidCallback? onScreenToggled;
+  final bool portrait;
 
   const VimeoPlayer({
     this.key,
@@ -27,6 +28,7 @@ class VimeoPlayer extends StatefulWidget {
     this.skipDuration = 5,
     this.onReady,
     this.onScreenToggled,
+    this.portrait = false,
   }) : super(key: key);
 
   @override
@@ -309,8 +311,8 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                     controller.reload();
                   },
                   isFullscreen: controller.value.isFullscreen,
-                  customWidth: controller.value.isFullscreen ? widget.width : null,
-                  customHeight: controller.value.isFullscreen ? widget.height : null,
+                  customWidth: controller.value.isFullscreen && widget.portrait ? widget.width : null,
+                  customHeight: controller.value.isFullscreen && widget.portrait ? widget.height : null,
                 ),
                 GestureDetector(
                   onTap: () {
