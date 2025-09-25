@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -59,6 +60,8 @@ class _VimeoBuilderState extends State<VimeoBuilder>
     with WidgetsBindingObserver {
   final GlobalKey playerKey = GlobalKey();
   bool _isFullScreen = false;
+  Timer? _orientationDebounceTimer;
+  bool _isTransitioning = false; // Flag to prevent multiple simultaneous transitions
 
   @override
   void initState() {
@@ -81,39 +84,59 @@ class _VimeoBuilderState extends State<VimeoBuilder>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.player.controller.removeListener(_onControllerValueChanged);
+    _orientationDebounceTimer?.cancel();
     super.dispose();
   }
 
   @override
   void didChangeMetrics() {
-    final physicalSize = PlatformDispatcher.instance.views.first.physicalSize;
-    final controller = widget.player.controller;
+    // Cancel any existing timer to debounce rapid orientation changes
+    _orientationDebounceTimer?.cancel();
+    
+    // Debounce orientation changes to prevent blinking
+    _orientationDebounceTimer = Timer(Duration(milliseconds: 100), () {
+      if (!mounted || _isTransitioning) return;
+      
+      final physicalSize = PlatformDispatcher.instance.views.first.physicalSize;
+      final controller = widget.player.controller;
 
-    // Only auto-switch to fullscreen for landscape videos when in landscape orientation
-    // For portrait videos, let the VimeoPlayer handle its own fullscreen logic
-    if (!widget.player.portrait) {
-      if (physicalSize.width > physicalSize.height) {
-        // Landscape orientation - auto fullscreen for landscape videos
-        if (!_isFullScreen) {
-          setState(() {
-            _isFullScreen = true;
-          });
-          controller.updateValue(controller.value.copyWith(isFullscreen: true));
-          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-        }
-      } else {
-        // Portrait orientation - exit fullscreen for landscape videos
-        if (_isFullScreen) {
-          setState(() {
-            _isFullScreen = false;
-          });
-          controller.updateValue(controller.value.copyWith(isFullscreen: false));
-          SystemChrome.restoreSystemUIOverlays();
+      // Only auto-switch to fullscreen for landscape videos when in landscape orientation
+      // For portrait videos, let the VimeoPlayer handle its own fullscreen logic
+      if (!widget.player.portrait) {
+        if (physicalSize.width > physicalSize.height) {
+          // Landscape orientation - auto fullscreen for landscape videos
+          if (!_isFullScreen) {
+            _isTransitioning = true;
+            setState(() {
+              _isFullScreen = true;
+            });
+            controller.updateValue(controller.value.copyWith(isFullscreen: true));
+            SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+            // Reset transition flag after a short delay
+            Timer(Duration(milliseconds: 200), () {
+              _isTransitioning = false;
+            });
+          }
+        } else {
+          // Portrait orientation - exit fullscreen for landscape videos
+          if (_isFullScreen) {
+            _isTransitioning = true;
+            setState(() {
+              _isFullScreen = false;
+            });
+            controller.updateValue(controller.value.copyWith(isFullscreen: false));
+            SystemChrome.restoreSystemUIOverlays();
+            // Reset transition flag after a short delay
+            Timer(Duration(milliseconds: 200), () {
+              _isTransitioning = false;
+            });
+          }
         }
       }
-    }
-    // For portrait videos, don't interfere with orientation changes
-    // Let VimeoPlayer handle its own fullscreen logic
+      // For portrait videos, don't interfere with orientation changes
+      // Let VimeoPlayer handle its own fullscreen logic
+    });
+    
     super.didChangeMetrics();
   }
 

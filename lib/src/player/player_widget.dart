@@ -61,6 +61,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   bool _isSeeking = false; // Flag to prevent position updates during seek
   double _displayPosition = 0.0; // Stable position for display
   bool _isFullScreen = false; // Internal fullscreen state
+  Timer? _fullscreenDebounceTimer; // Timer to debounce fullscreen state changes
 
   void listener() async {
     if (controller.value.isReady) {
@@ -77,17 +78,24 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     setState(() {
       _isPlaying = controller.value.isPlaying;
 
-      // Sync internal fullscreen state with controller's fullscreen state
-      if (controller.value.isFullscreen != _isFullScreen) {
-        _isFullScreen = controller.value.isFullscreen;
-      }
-
       // Only update position if we're not currently seeking
       if (controller.value.videoPosition != null && !_isSeeking) {
         _position = controller.value.videoPosition!;
         _displayPosition = _position; // Update display position
       }
     });
+
+    // Debounce fullscreen state changes to prevent blinking
+    if (controller.value.isFullscreen != _isFullScreen) {
+      _fullscreenDebounceTimer?.cancel();
+      _fullscreenDebounceTimer = Timer(Duration(milliseconds: 50), () {
+        if (mounted) {
+          setState(() {
+            _isFullScreen = controller.value.isFullscreen;
+          });
+        }
+      });
+    }
 
     if (controller.value.videoWidth != null &&
         controller.value.videoHeight != null) {
@@ -136,6 +144,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   void dispose() {
     controller.removeListener(listener);
     _seekingTimer?.cancel();
+    _fullscreenDebounceTimer?.cancel();
     controller.dispose();
     super.dispose();
   }
