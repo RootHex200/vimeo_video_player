@@ -64,14 +64,14 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   Timer? _fullscreenDebounceTimer; // Timer to debounce fullscreen state changes
 
   void listener() async {
-    if (controller.value.isReady) {
-      if (!_isPlayerReady) {
-        widget.onReady?.call();
-        setState(() {
-          _centerUiVisible = true;
-          _isPlayerReady = true;
-        });
-      }
+    // Handle onReady callback first, outside of setState
+    if (controller.value.isReady && !_isPlayerReady) {
+      print('VimeoPlayer: Controller is ready, calling onReady callback');
+      widget.onReady?.call();
+      setState(() {
+        _centerUiVisible = true;
+        _isPlayerReady = true;
+      });
     }
 
     // Always update state to ensure UI reflects current values

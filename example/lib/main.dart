@@ -89,6 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
         skipDuration: 10,
         portrait: false, // Set to true for portrait video, false for landscape
         onReady: () {
+          print('onReady callback triggered!');
           setState(() {
             _playerReady = true;
           });

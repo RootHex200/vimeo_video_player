@@ -24,7 +24,7 @@ class WebViewPlayer extends StatefulWidget {
 class _WebViewPlayerState extends State<WebViewPlayer>
     with WidgetsBindingObserver {
   late VimeoPlayerController controller;
-  final bool _isPlayerReady = false;
+  bool _isPlayerReady = false;
 
   @override
   void initState() {
@@ -89,6 +89,7 @@ class _WebViewPlayerState extends State<WebViewPlayer>
               handlerName: 'Ready',
               callback: (_) {
                 print('player ready');
+                _isPlayerReady = true;
                 if (!controller.value.isReady) {
                   controller.updateValue(
                     controller.value.copyWith(isReady: true),
