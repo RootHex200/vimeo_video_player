@@ -49,7 +49,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late VimeoPlayerController controller;
   bool _playerReady = false;
-  final double _height=300;
+  final double _height=244;
   @override
   void initState() {
     super.initState();

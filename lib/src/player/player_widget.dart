@@ -459,7 +459,12 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                     : const SizedBox(height: 1),
 
                 // Settings overlay with backdrop
-                if (_showSettings) _buildSettingsOverlayWithBackdrop(),
+                if (_showSettings) 
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      return _buildSettingsOverlayWithBackdrop(constraints);
+                    },
+                  ),
               ],
             ),
           ),
@@ -880,7 +885,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     );
   }
 
-  Widget _buildSettingsOverlayWithBackdrop() {
+  Widget _buildSettingsOverlayWithBackdrop(BoxConstraints constraints) {
     return Positioned.fill(
       child: GestureDetector(
         onTap: () {
@@ -900,7 +905,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 ),
               ),
               // Settings overlay
-              _buildSettingsOverlay(),
+              _buildSettingsOverlay(constraints),
             ],
           ),
         ),
@@ -908,15 +913,34 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     );
   }
 
-  Widget _buildSettingsOverlay() {
+  Widget _buildSettingsOverlay(BoxConstraints constraints) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isSmallScreen = screenWidth <= 380;
     
     // Calculate responsive positioning
     final rightPosition = isSmallScreen ? 8.0 : (isTablet ? 24.0 : 16.0);
-    final bottomPosition = isSmallScreen ? 60.0 : (isTablet ? 100.0 : 80.0);
     final overlayWidth = isSmallScreen ? 140.0 : (isTablet ? 180.0 : 160.0);
+    
+    // Use actual player dimensions from constraints
+    final playerHeight = constraints.maxHeight;
+    
+    // Calculate bottom position based on actual player height
+    double bottomPosition;
+    if (playerHeight < 250) {
+      // For very small players (like 244px), use minimal bottom position
+      bottomPosition = 20.0;
+    } else if (playerHeight < 300) {
+      // For small players, use small bottom position
+      bottomPosition = 40.0;
+    } else if (isSmallScreen) {
+      bottomPosition = 50.0;
+    } else if (isTablet) {
+      bottomPosition = 100.0;
+    } else {
+      // For medium screens, use a moderate position
+      bottomPosition = 70.0;
+    }
 
     if (_showSubmenu == 'quality') {
       return _buildQualitySubmenu(rightPosition, bottomPosition, overlayWidth);
