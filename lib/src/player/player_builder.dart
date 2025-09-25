@@ -128,9 +128,15 @@ class _VimeoBuilderState extends State<VimeoBuilder>
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       
     } else {
+      // When exiting fullscreen, restore all orientations and system UI
       controller.updateValue(controller.value.copyWith(isFullscreen: false));
-      SystemChrome.restoreSystemUIOverlays();
-
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
   }
 

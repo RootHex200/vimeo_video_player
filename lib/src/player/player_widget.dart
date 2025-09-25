@@ -77,6 +77,11 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     setState(() {
       _isPlaying = controller.value.isPlaying;
 
+      // Sync internal fullscreen state with controller's fullscreen state
+      if (controller.value.isFullscreen != _isFullScreen) {
+        _isFullScreen = controller.value.isFullscreen;
+      }
+
       // Only update position if we're not currently seeking
       if (controller.value.videoPosition != null && !_isSeeking) {
         _position = controller.value.videoPosition!;
