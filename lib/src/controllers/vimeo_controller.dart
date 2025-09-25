@@ -59,26 +59,54 @@ class VimeoPlayerValue {
 }
 
 class VimeoPlayerController extends ValueNotifier<VimeoPlayerValue> {
-  final String initialVideoId;
+  final String? initialVideoId;
   final VimeoPlayerFlags flags;
+  bool _isDisposed = false;
+  final List<VoidCallback> _disposeCallbacks = [];
 
   VimeoPlayerController({
-    required this.initialVideoId,
+    this.initialVideoId,
     this.flags = const VimeoPlayerFlags(),
-  }) : super(VimeoPlayerValue());
-
-  static VimeoPlayerController of(BuildContext context) {
-    final InheritedVimeoPlayer? inherited = context
-        .dependOnInheritedWidgetOfExactType<InheritedVimeoPlayer>();
-    return inherited!.controller;
+  }) : super(VimeoPlayerValue()) {
+    // Validate video ID if provided
+    if (initialVideoId != null && initialVideoId!.isEmpty) {
+      throw ArgumentError('Video ID cannot be empty if provided');
+    }
   }
 
-  void updateValue(VimeoPlayerValue newValue) => value = newValue;
+  static VimeoPlayerController? of(BuildContext context) {
+    final InheritedVimeoPlayer? inherited = context
+        .dependOnInheritedWidgetOfExactType<InheritedVimeoPlayer>();
+    return inherited?.controller;
+  }
 
-  void toggleFullscreenMode() =>
+  static VimeoPlayerController ofRequired(BuildContext context) {
+    final controller = of(context);
+    if (controller == null) {
+      throw FlutterError(
+        'VimeoPlayerController not found in context. Make sure VimeoPlayer is properly initialized.',
+      );
+    }
+    return controller;
+  }
+
+  void updateValue(VimeoPlayerValue newValue) {
+    if (!_isDisposed) {
+      value = newValue;
+    }
+  }
+
+  void toggleFullscreenMode() {
+    if (!_isDisposed) {
       updateValue(value.copyWith(isFullscreen: true));
+    }
+  }
 
-  void reload() => value.webViewController?.reload();
+  void reload() {
+    if (!_isDisposed && value.webViewController != null) {
+      value.webViewController!.reload();
+    }
+  }
 
   void play() => _callMethod('play()');
   void pause() => _callMethod('pause()');
@@ -90,12 +118,61 @@ class VimeoPlayerController extends ValueNotifier<VimeoPlayerValue> {
   void setQuality(String quality) => _callMethod('setQuality("$quality")');
   void setPlaybackRate(double rate) => _callMethod('setPlaybackRate($rate)');
 
-  _callMethod(String methodString) {
-    if (value.isReady) {
-      value.webViewController?.evaluateJavascript(source: methodString);
+  void _callMethod(String methodString) {
+    if (_isDisposed) return;
+
+    if (value.isReady && value.webViewController != null) {
+      try {
+        value.webViewController!.evaluateJavascript(source: methodString);
+      } catch (e) {
+        print('Error calling method $methodString: $e');
+      }
     } else {
       print('The controller is not ready for method calls.');
     }
+  }
+
+  /// Add a callback to be called when the controller is disposed
+  void addDisposeCallback(VoidCallback callback) {
+    if (!_isDisposed) {
+      _disposeCallbacks.add(callback);
+    }
+  }
+
+  /// Remove a dispose callback
+  void removeDisposeCallback(VoidCallback callback) {
+    _disposeCallbacks.remove(callback);
+  }
+
+  /// Check if the controller is disposed
+  bool get isDisposed => _isDisposed;
+
+  /// Check if the controller has a valid video ID
+  bool get hasValidVideoId =>
+      initialVideoId != null && initialVideoId!.isNotEmpty;
+
+  @override
+  void dispose() {
+    if (_isDisposed) return;
+
+    _isDisposed = true;
+
+    // Call all dispose callbacks
+    for (final callback in _disposeCallbacks) {
+      try {
+        callback();
+      } catch (e) {
+        print('Error in dispose callback: $e');
+      }
+    }
+    _disposeCallbacks.clear();
+
+    // Clear web view controller reference
+    if (value.webViewController != null) {
+      value = value.copyWith(webViewController: null);
+    }
+
+    super.dispose();
   }
 }
 

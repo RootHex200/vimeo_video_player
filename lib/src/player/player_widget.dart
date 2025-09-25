@@ -11,21 +11,23 @@ import 'package:vimeo_player_package/src/player/webview_player.dart';
 class VimeoPlayer extends StatefulWidget {
   @override
   final Key? key;
-  final VimeoPlayerController controller;
+  final VimeoPlayerController? controller;
   final double aspectRatio;
   final int skipDuration;
   final VoidCallback? onReady;
   final VoidCallback? onScreenToggled;
   final bool portrait;
+  final Widget? placeholder;
 
   const VimeoPlayer({
     this.key,
-    required this.controller,
+    this.controller,
     this.aspectRatio = 16 / 9,
     this.skipDuration = 5,
     this.onReady,
     this.onScreenToggled,
     this.portrait = false,
+    this.placeholder,
   }) : super(key: key);
 
   @override
@@ -34,7 +36,7 @@ class VimeoPlayer extends StatefulWidget {
 
 class _VimeoPlayerState extends State<VimeoPlayer>
     with SingleTickerProviderStateMixin {
-  late VimeoPlayerController controller;
+  VimeoPlayerController? _controller;
   late AnimationController _animationController;
   bool _initialLoad = true;
   double _position = 0.0;
@@ -53,7 +55,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   double _playbackSpeed = 1.0;
   double _volume = 0.7;
   bool _isMuted = false;
-  late CancelableCompleter completer;
+  CancelableCompleter? completer;
   Timer? t;
   Timer? t2;
   Timer? _seekingTimer; // Timer to manage seeking state
@@ -62,34 +64,43 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   double _displayPosition = 0.0; // Stable position for display
   bool _isFullScreen = false; // Internal fullscreen state
   Timer? _fullscreenDebounceTimer; // Timer to debounce fullscreen state changes
+  bool _isDisposed = false;
 
   void listener() async {
+    if (_isDisposed || _controller == null) return;
+
+    final controller = _controller!;
+
     // Handle onReady callback first, outside of setState
-    if (controller.value.isReady && !_isPlayerReady) {
+    if (_controller?.value.isReady == true && !_isPlayerReady) {
       print('VimeoPlayer: Controller is ready, calling onReady callback');
       widget.onReady?.call();
-      setState(() {
-        _centerUiVisible = true;
-        _isPlayerReady = true;
-      });
+      if (mounted) {
+        setState(() {
+          _centerUiVisible = true;
+          _isPlayerReady = true;
+        });
+      }
     }
 
     // Always update state to ensure UI reflects current values
-    setState(() {
-      _isPlaying = controller.value.isPlaying;
+    if (mounted) {
+      setState(() {
+        _isPlaying = controller.value.isPlaying;
 
-      // Only update position if we're not currently seeking
-      if (controller.value.videoPosition != null && !_isSeeking) {
-        _position = controller.value.videoPosition!;
-        _displayPosition = _position; // Update display position
-      }
-    });
+        // Only update position if we're not currently seeking
+        if (controller.value.videoPosition != null && !_isSeeking) {
+          _position = controller.value.videoPosition!;
+          _displayPosition = _position; // Update display position
+        }
+      });
+    }
 
     // Debounce fullscreen state changes to prevent blinking
     if (controller.value.isFullscreen != _isFullScreen) {
       _fullscreenDebounceTimer?.cancel();
       _fullscreenDebounceTimer = Timer(Duration(milliseconds: 50), () {
-        if (mounted) {
+        if (mounted && !_isDisposed) {
           setState(() {
             _isFullScreen = controller.value.isFullscreen;
           });
@@ -99,31 +110,47 @@ class _VimeoPlayerState extends State<VimeoPlayer>
 
     if (controller.value.videoWidth != null &&
         controller.value.videoHeight != null) {
-      setState(() {
-        if (widget.portrait) {
-          // For portrait videos, use a portrait aspect ratio (9:16)
-          _aspectRatio = 9.0 / 16.0;
-        } else {
-          // For landscape videos, use the actual video aspect ratio
-          _aspectRatio = (controller.value.videoWidth! / controller.value.videoHeight!);
-        }
-      });
+      if (mounted) {
+        setState(() {
+          if (widget.portrait) {
+            // For portrait videos, use a portrait aspect ratio (9:16)
+            _aspectRatio = 9.0 / 16.0;
+          } else {
+            // For landscape videos, use the actual video aspect ratio
+            _aspectRatio =
+                (controller.value.videoWidth! / controller.value.videoHeight!);
+          }
+        });
+      }
     }
   }
 
   @override
   void initState() {
     super.initState();
-    controller = widget.controller..addListener(listener);
+
     // Set initial aspect ratio based on portrait parameter
     _aspectRatio = widget.portrait ? (9.0 / 16.0) : widget.aspectRatio;
 
+    // Initialize controller if provided
+    if (widget.controller != null) {
+      _controller = widget.controller;
+      _controller!.addListener(listener);
+
+      // Add dispose callback to controller
+      _controller!.addDisposeCallback(() {
+        _isDisposed = true;
+      });
+    }
+
     completer = CancelableCompleter(
       onCancel: () {
-        setState(() {
-          _bottomUiVisible = true;
-          _uiOpacity = 1.0;
-        });
+        if (mounted && !_isDisposed) {
+          setState(() {
+            _bottomUiVisible = true;
+            _uiOpacity = 1.0;
+          });
+        }
       },
     );
 
@@ -136,30 +163,108 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   @override
   void didUpdateWidget(VimeoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    oldWidget.controller.removeListener(listener);
-    widget.controller.addListener(listener);
+
+    // Handle controller changes
+    if (oldWidget.controller != widget.controller) {
+      // Remove listener from old controller
+      if (oldWidget.controller != null) {
+        oldWidget.controller!.removeListener(listener);
+      }
+
+      // Add listener to new controller
+      if (widget.controller != null) {
+        _controller = widget.controller;
+        _controller!.addListener(listener);
+
+        // Add dispose callback to new controller
+        _controller!.addDisposeCallback(() {
+          _isDisposed = true;
+        });
+      } else {
+        _controller = null;
+      }
+    }
   }
 
   @override
   void dispose() {
-    controller.removeListener(listener);
+    _isDisposed = true;
+
+    // Cancel all timers
     _seekingTimer?.cancel();
     _fullscreenDebounceTimer?.cancel();
-    controller.dispose();
+    t?.cancel();
+    t2?.cancel();
+
+    // Cancel completer
+    completer?.complete();
+
+    // Remove listener and dispose controller
+    if (_controller != null) {
+      _controller!.removeListener(listener);
+      // Don't dispose controller here as it might be used elsewhere
+      // The controller should be disposed by its owner
+    }
+
+    // Dispose animation controller
+    _animationController.dispose();
+
     super.dispose();
+  }
+
+  Widget _buildPlaceholder() {
+    if (widget.placeholder != null) {
+      return widget.placeholder!;
+    }
+
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      child: AspectRatio(
+        aspectRatio: _aspectRatio,
+        child: Container(
+          color: Colors.black,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.video_library_outlined,
+                  color: Colors.white.withOpacity(0.5),
+                  size: 48,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'No video loaded',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Controller not initialized',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _toggleFullscreen() {
     setState(() {
       _isFullScreen = !_isFullScreen;
     });
-    
+
     if (_isFullScreen) {
       if (widget.portrait) {
         // Force portrait orientation for portrait videos
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-        ]);
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
       } else {
         // Force landscape orientation for landscape videos
         SystemChrome.setPreferredOrientations([
@@ -167,11 +272,11 @@ class _VimeoPlayerState extends State<VimeoPlayer>
           DeviceOrientation.landscapeRight,
         ]);
       }
-      
+
       // Hide system UI for immersive experience
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       // Update controller state
-      controller.updateValue(controller.value.copyWith(isFullscreen: true));
+      _controller?.updateValue(_controller!.value.copyWith(isFullscreen: true));
     } else {
       _exitFullscreen();
     }
@@ -181,7 +286,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     setState(() {
       _isFullScreen = false;
     });
-    
+
     // Allow all orientations when exiting fullscreen
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -189,13 +294,12 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    
+
     // Restore system UI
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     // Update controller state
-    controller.updateValue(controller.value.copyWith(isFullscreen: false));
+    _controller?.updateValue(_controller!.value.copyWith(isFullscreen: false));
   }
-
 
   _hideUi() {
     setState(() {
@@ -206,89 +310,113 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   }
 
   _onPlay() {
-    if (controller.value.isPlaying) {
-      controller.pause();
+    if (_controller == null || _isDisposed) return;
+
+    if (_controller!.value.isPlaying) {
+      _controller!.pause();
       _animationController.forward();
     } else {
-      controller.play();
+      _controller!.play();
       _animationController.reverse();
     }
 
     if (_initialLoad) {
-      setState(() {
-        _initialLoad = false;
-        _centerUiVisible = false;
-        _bottomUiVisible = true;
-      });
+      if (mounted) {
+        setState(() {
+          _initialLoad = false;
+          _centerUiVisible = false;
+          _bottomUiVisible = true;
+        });
+      }
     } else {
-      setState(() {
-        _centerUiVisible = false;
-        _bottomUiVisible = true;
-      });
+      if (mounted) {
+        setState(() {
+          _centerUiVisible = false;
+          _bottomUiVisible = true;
+        });
+      }
 
       t = Timer(Duration(seconds: 3), () {
-        _hideUi();
+        if (mounted && !_isDisposed) {
+          _hideUi();
+        }
       });
     }
   }
 
   _onBottomPlayButton() {
-    if (controller.value.isPlaying) {
-      controller.pause();
-      setState(() {
-        _centerUiVisible = true;
-        _bottomUiVisible = false;
-        _uiOpacity = 1.0;
-      });
+    if (_controller == null || _isDisposed) return;
+
+    if (_controller!.value.isPlaying) {
+      _controller!.pause();
+      if (mounted) {
+        setState(() {
+          _centerUiVisible = true;
+          _bottomUiVisible = false;
+          _uiOpacity = 1.0;
+        });
+      }
       if (t != null && t!.isActive) {
         t!.cancel();
       }
     } else {
-      controller.play();
+      _controller!.play();
     }
   }
 
   _onUiTouched() {
+    if (_isDisposed) return;
+
     // Close settings overlay if it's open
     if (_showSettings) {
-      setState(() {
-        _showSettings = false;
-        _showSubmenu = '';
-      });
+      if (mounted) {
+        setState(() {
+          _showSettings = false;
+          _showSubmenu = '';
+        });
+      }
       return; // Don't handle video controls when closing settings
     }
-    
+
     if (t != null && t!.isActive) {
       t!.cancel();
     }
     if (_isPlaying) {
       if (_bottomUiVisible) {
         // Only pause the video when seekbar is showing
-        controller.pause();
+        _controller?.pause();
+        if (mounted) {
+          setState(() {
+            _bottomUiVisible = false;
+            _centerUiVisible = true;
+            _uiOpacity = 1.0;
+          });
+        }
+      } else {
+        // Show bottom controls when seekbar is not visible
+        if (mounted) {
+          setState(() {
+            _bottomUiVisible = true;
+            _centerUiVisible = false;
+            _uiOpacity = 1.0;
+          });
+        }
+        /* delayed animation */
+        t = Timer(Duration(seconds: 2), () {
+          if (mounted && !_isDisposed) {
+            _hideUi();
+          }
+        });
+      }
+    } else {
+      // Show center play button when video is paused
+      if (mounted) {
         setState(() {
           _bottomUiVisible = false;
           _centerUiVisible = true;
           _uiOpacity = 1.0;
         });
-      } else {
-        // Show bottom controls when seekbar is not visible
-        setState(() {
-          _bottomUiVisible = true;
-          _centerUiVisible = false;
-          _uiOpacity = 1.0;
-        });
-        /* delayed animation */
-        t = Timer(Duration(seconds: 2), () {
-          _hideUi();
-        });
       }
-    } else {
-      // Show center play button when video is paused
-      setState(() {
-        _bottomUiVisible = false;
-        _centerUiVisible = true;
-        _uiOpacity = 1.0;
-      });
     }
   }
 
@@ -301,7 +429,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       });
       return; // Don't handle seek when closing settings
     }
-    
+
     if (t != null && t!.isActive) {
       t!.cancel();
     }
@@ -320,14 +448,14 @@ class _VimeoPlayerState extends State<VimeoPlayer>
         _seekDuration = _seekDuration + widget.skipDuration;
       });
       /* seek fwd */
-      controller.seekTo(_position + widget.skipDuration);
+      _controller?.seekTo(_position + widget.skipDuration);
     } else {
       setState(() {
         _seekingB = true;
         _seekDuration = _seekDuration - widget.skipDuration;
       });
       /* seek Backward */
-      controller.seekTo(_position - widget.skipDuration);
+      _controller?.seekTo(_position - widget.skipDuration);
     }
     /* delayed animation */
     t = Timer(Duration(seconds: 3), () {
@@ -344,6 +472,11 @@ class _VimeoPlayerState extends State<VimeoPlayer>
 
   @override
   Widget build(BuildContext context) {
+    // If no controller is provided, show placeholder or empty container
+    if (_controller == null) {
+      return _buildPlaceholder();
+    }
+
     double height = MediaQuery.of(context).size.height;
     double width = MediaQuery.of(context).size.width;
 
@@ -351,7 +484,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       elevation: 0,
       color: Colors.black,
       child: InheritedVimeoPlayer(
-        controller: controller,
+        controller: _controller!,
         child: SizedBox(
           width: MediaQuery.of(context).size.width,
           child: AspectRatio(
@@ -363,14 +496,15 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 WebViewPlayer(
                   key: widget.key,
                   onEnded: (VimeoMetadata metadata) {
-                   
-                    setState(() {
-                      _uiOpacity = 1.0;
-                      _bottomUiVisible = false;
-                      _centerUiVisible = true;
-                      _initialLoad = true;
-                    });
-                    controller.reload();
+                    if (mounted && !_isDisposed) {
+                      setState(() {
+                        _uiOpacity = 1.0;
+                        _bottomUiVisible = false;
+                        _centerUiVisible = true;
+                        _initialLoad = true;
+                      });
+                      _controller?.reload();
+                    }
                   },
                   isFullscreen: _isFullScreen,
                   portrait: widget.portrait,
@@ -384,7 +518,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                     opacity: _uiOpacity,
                     curve: Curves.easeInOutCubic,
                     duration: const Duration(milliseconds: 400),
-                    child: controller.value.isReady
+                    child: _controller?.value.isReady == true
                         ? Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
@@ -398,7 +532,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                                 end: Alignment.bottomCenter,
                               ),
                             ),
-                            child: controller.value.isReady
+                            child: _controller?.value.isReady == true
                                 ? Center(
                                     child: Row(
                                       mainAxisAlignment:
@@ -454,12 +588,14 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                         : const SizedBox(),
                   ),
                 ),
-                controller.value.isReady && _bottomUiVisible && !_initialLoad
+                _controller?.value.isReady == true &&
+                        _bottomUiVisible &&
+                        !_initialLoad
                     ? _buildModernBottomControls(height, width)
                     : const SizedBox(height: 1),
 
                 // Settings overlay with backdrop
-                if (_showSettings) 
+                if (_showSettings)
                   LayoutBuilder(
                     builder: (context, constraints) {
                       return _buildSettingsOverlayWithBackdrop(constraints);
@@ -495,11 +631,13 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   }
 
   _getTimestamp() {
+    if (_controller == null) return '0:00 / 0:00';
+
     // Use stable display position to prevent jumping
-    final currentPos = _isSeeking 
+    final currentPos = _isSeeking
         ? (_seekingPosition ?? _displayPosition)
         : _displayPosition;
-    final totalDuration = controller.value.videoDuration ?? 0.0;
+    final totalDuration = _controller!.value.videoDuration ?? 0.0;
 
     var position = _printDuration(Duration(seconds: currentPos.round()));
     var duration = _printDuration(Duration(seconds: totalDuration.round()));
@@ -546,7 +684,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 splashColor: Colors.white.withOpacity(0.2),
                 onTap: _onPlay,
                 child: Icon(
-                  controller.value.isPlaying
+                  _controller?.value.isPlaying == true
                       ? Icons.pause_rounded
                       : Icons.play_arrow_rounded,
                   color: Colors.white,
@@ -711,7 +849,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               _seekingPosition = end;
               _displayPosition = end; // Update display position
             });
-            controller.seekTo(end.roundToDouble());
+            _controller?.seekTo(end.roundToDouble());
             // Clear seeking state after a delay
             _seekingTimer?.cancel();
             _seekingTimer = Timer(Duration(milliseconds: 1500), () {
@@ -722,12 +860,15 @@ class _VimeoPlayerState extends State<VimeoPlayer>
             });
           },
           min: 0,
-          max: controller.value.videoDuration != null
-              ? controller.value.videoDuration! + 1.0
+          max: _controller?.value.videoDuration != null
+              ? _controller!.value.videoDuration! + 1.0
               : 0.0,
-          value: _isSeeking 
-            ? (_seekingPosition ?? _position).clamp(0.0, controller.value.videoDuration ?? 0.0)
-            : _position.clamp(0.0, controller.value.videoDuration ?? 0.0),
+          value: _isSeeking
+              ? (_seekingPosition ?? _position).clamp(
+                  0.0,
+                  _controller?.value.videoDuration ?? 0.0,
+                )
+              : _position.clamp(0.0, _controller?.value.videoDuration ?? 0.0),
           onChanged: (value) {
             setState(() {
               _seekingPosition = value;
@@ -798,7 +939,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               _isMuted = value == 0;
             });
             // Call the controller to set volume in the player
-            controller.setVolume(value);
+            _controller?.setVolume(value);
           },
         ),
       ),
@@ -813,7 +954,9 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     return Row(
       children: [
         _buildVimeoControlButton(
-          icon: controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+          icon: _controller?.value.isPlaying == true
+              ? Icons.pause
+              : Icons.play_arrow,
           onTap: _onBottomPlayButton,
         ),
         SizedBox(width: isVerySmall ? 6 : (isTablet ? 16 : 12)),
@@ -834,11 +977,11 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 if (_isMuted) {
                   _isMuted = false;
                   _volume = 0.7;
-                  controller.unmute();
+                  _controller?.unmute();
                 } else {
                   _isMuted = true;
                   _volume = 0.0;
-                  controller.mute();
+                  _controller?.mute();
                 }
               });
             },
@@ -900,9 +1043,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
             children: [
               // Backdrop
               Positioned.fill(
-                child: Container(
-                  color: Colors.black.withOpacity(0.1),
-                ),
+                child: Container(color: Colors.black.withOpacity(0.1)),
               ),
               // Settings overlay
               _buildSettingsOverlay(constraints),
@@ -917,14 +1058,14 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isSmallScreen = screenWidth <= 380;
-    
+
     // Calculate responsive positioning
     final rightPosition = isSmallScreen ? 8.0 : (isTablet ? 24.0 : 16.0);
     final overlayWidth = isSmallScreen ? 140.0 : (isTablet ? 180.0 : 160.0);
-    
+
     // Use actual player dimensions from constraints
     final playerHeight = constraints.maxHeight;
-    
+
     // Calculate bottom position based on actual player height
     double bottomPosition;
     if (playerHeight < 250) {
@@ -985,8 +1126,8 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               children: [
                 // Quality Option
                 _buildEnhancedSettingsOption(
-                  'Quality', 
-                  _selectedQuality, 
+                  'Quality',
+                  _selectedQuality,
                   Icons.hd,
                   () {
                     setState(() {
@@ -998,7 +1139,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
 
                 // Divider
                 Container(
-                  height: 1, 
+                  height: 1,
                   margin: const EdgeInsets.symmetric(horizontal: 12),
                   color: Colors.white.withOpacity(0.15),
                 ),
@@ -1037,7 +1178,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
         onTap: onTap,
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isSmallScreen ? 8 : 12, 
+            horizontal: isSmallScreen ? 8 : 12,
             vertical: isSmallScreen ? 8 : 10,
           ),
           child: Row(
@@ -1057,7 +1198,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 ),
               ),
               SizedBox(width: isSmallScreen ? 8 : 10),
-              
+
               // Title and Value - more compact
               Expanded(
                 child: Column(
@@ -1083,7 +1224,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                   ],
                 ),
               ),
-              
+
               // Chevron - smaller
               Icon(
                 Icons.chevron_right_rounded,
@@ -1097,11 +1238,15 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     );
   }
 
-  Widget _buildQualitySubmenu(double rightPosition, double bottomPosition, double overlayWidth) {
+  Widget _buildQualitySubmenu(
+    double rightPosition,
+    double bottomPosition,
+    double overlayWidth,
+  ) {
     final qualities = ['Auto', '1080p', '720p', '480p', '360p'];
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth <= 380;
-    
+
     return Positioned(
       right: rightPosition,
       bottom: bottomPosition,
@@ -1189,9 +1334,12 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: qualities.map(
-                      (quality) => _buildQualityOption(quality, isSmallScreen),
-                    ).toList(),
+                    children: qualities
+                        .map(
+                          (quality) =>
+                              _buildQualityOption(quality, isSmallScreen),
+                        )
+                        .toList(),
                   ),
                 ),
               ),
@@ -1214,7 +1362,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
             _showSubmenu = '';
             _showSettings = false;
           });
-          controller.setQuality(quality);
+          _controller?.setQuality(quality);
         },
         child: Container(
           padding: EdgeInsets.symmetric(
@@ -1227,12 +1375,12 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 width: isSmallScreen ? 18 : 20,
                 height: isSmallScreen ? 18 : 20,
                 decoration: BoxDecoration(
-                  color: isSelected 
+                  color: isSelected
                       ? const Color(0xFF01A4EA).withOpacity(0.2)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(3),
                   border: Border.all(
-                    color: isSelected 
+                    color: isSelected
                         ? const Color(0xFF01A4EA)
                         : Colors.white.withOpacity(0.3),
                     width: 1,
@@ -1250,13 +1398,9 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               Text(
                 quality,
                 style: TextStyle(
-                  color: isSelected
-                      ? const Color(0xFF01A4EA)
-                      : Colors.white,
+                  color: isSelected ? const Color(0xFF01A4EA) : Colors.white,
                   fontSize: isSmallScreen ? 11 : 12,
-                  fontWeight: isSelected
-                      ? FontWeight.w600
-                      : FontWeight.w400,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ],
@@ -1266,11 +1410,15 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     );
   }
 
-  Widget _buildSpeedSubmenu(double rightPosition, double bottomPosition, double overlayWidth) {
+  Widget _buildSpeedSubmenu(
+    double rightPosition,
+    double bottomPosition,
+    double overlayWidth,
+  ) {
     final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth <= 380;
-    
+
     return Positioned(
       right: rightPosition,
       bottom: bottomPosition,
@@ -1358,9 +1506,9 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: speeds.map(
-                      (speed) => _buildSpeedOption(speed, isSmallScreen),
-                    ).toList(),
+                    children: speeds
+                        .map((speed) => _buildSpeedOption(speed, isSmallScreen))
+                        .toList(),
                   ),
                 ),
               ),
@@ -1383,7 +1531,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
             _showSubmenu = '';
             _showSettings = false;
           });
-          controller.setPlaybackRate(speed);
+          _controller?.setPlaybackRate(speed);
         },
         child: Container(
           padding: EdgeInsets.symmetric(
@@ -1396,12 +1544,12 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 width: isSmallScreen ? 18 : 20,
                 height: isSmallScreen ? 18 : 20,
                 decoration: BoxDecoration(
-                  color: isSelected 
+                  color: isSelected
                       ? const Color(0xFF01A4EA).withOpacity(0.2)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(3),
                   border: Border.all(
-                    color: isSelected 
+                    color: isSelected
                         ? const Color(0xFF01A4EA)
                         : Colors.white.withOpacity(0.3),
                     width: 1,
@@ -1419,13 +1567,9 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               Text(
                 speed == 1.0 ? 'Normal' : '${speed}x',
                 style: TextStyle(
-                  color: isSelected
-                      ? const Color(0xFF01A4EA)
-                      : Colors.white,
+                  color: isSelected ? const Color(0xFF01A4EA) : Colors.white,
                   fontSize: isSmallScreen ? 11 : 12,
-                  fontWeight: isSelected
-                      ? FontWeight.w600
-                      : FontWeight.w400,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
             ],
