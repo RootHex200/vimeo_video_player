@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:vimeo_player_package/vimeo_player_package.dart';
 
 void main() => runApp(MyApp());
@@ -50,9 +49,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late VimeoPlayerController controller;
   bool _playerReady = false;
-  String _videoTitle = 'Loading...';
   final double _height=300;
-  final bool _isPortraitMode = false;
   @override
   void initState() {
     super.initState();
@@ -68,19 +65,13 @@ class _MyHomePageState extends State<MyHomePage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           setState(() {
-            _videoTitle = controller.value.videoTitle ?? 'Unknown';
-            _isFullScreen = controller.value.isFullscreen;
+            // Video title is available via controller.value.videoTitle if needed
           });
         }
       });
     }
   }
 
-  void _toggleFullscreen() {
-    // This method is now handled internally by the package
-    // Just call the external callback if needed
-    print('Fullscreen toggled externally');
-  }
   // Fullscreen logic is now handled internally by the package
 
   @override
@@ -96,7 +87,7 @@ class _MyHomePageState extends State<MyHomePage> {
       player: VimeoPlayer(
         controller: controller,
         skipDuration: 10,
-        portrait: _isPortraitMode, // Set to true for portrait video, false for landscape
+        portrait: false, // Set to true for portrait video, false for landscape
         onReady: () {
           setState(() {
             _playerReady = true;

@@ -64,11 +64,23 @@ class _VimeoBuilderState extends State<VimeoBuilder>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Listen to controller changes to sync fullscreen state
+    widget.player.controller.addListener(_onControllerValueChanged);
+  }
+
+  void _onControllerValueChanged() {
+    // Sync VimeoBuilder's fullscreen state with controller's fullscreen state
+    if (widget.player.controller.value.isFullscreen != _isFullScreen) {
+      setState(() {
+        _isFullScreen = widget.player.controller.value.isFullscreen;
+      });
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.player.controller.removeListener(_onControllerValueChanged);
     super.dispose();
   }
 
@@ -77,27 +89,31 @@ class _VimeoBuilderState extends State<VimeoBuilder>
     final physicalSize = PlatformDispatcher.instance.views.first.physicalSize;
     final controller = widget.player.controller;
 
-    if (physicalSize.width > physicalSize.height) {
-      // Landscape orientation
-      if (!_isFullScreen) {
-        setState(() {
-          _isFullScreen = true;
-        });
-        controller.updateValue(controller.value.copyWith(isFullscreen: true));
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-        
-      }
-    } else {
-      // Portrait orientation
-      if (_isFullScreen) {
-        setState(() {
-          _isFullScreen = false;
-        });
-        controller.updateValue(controller.value.copyWith(isFullscreen: false));
-        SystemChrome.restoreSystemUIOverlays();
-        
+    // Only auto-switch to fullscreen for landscape videos when in landscape orientation
+    // For portrait videos, let the VimeoPlayer handle its own fullscreen logic
+    if (!widget.player.portrait) {
+      if (physicalSize.width > physicalSize.height) {
+        // Landscape orientation - auto fullscreen for landscape videos
+        if (!_isFullScreen) {
+          setState(() {
+            _isFullScreen = true;
+          });
+          controller.updateValue(controller.value.copyWith(isFullscreen: true));
+          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+        }
+      } else {
+        // Portrait orientation - exit fullscreen for landscape videos
+        if (_isFullScreen) {
+          setState(() {
+            _isFullScreen = false;
+          });
+          controller.updateValue(controller.value.copyWith(isFullscreen: false));
+          SystemChrome.restoreSystemUIOverlays();
+        }
       }
     }
+    // For portrait videos, don't interfere with orientation changes
+    // Let VimeoPlayer handle its own fullscreen logic
     super.didChangeMetrics();
   }
 
@@ -118,18 +134,18 @@ class _VimeoBuilderState extends State<VimeoBuilder>
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return OrientationBuilder(
       builder: (context, constraints) {
-        final orientation = MediaQuery.orientationOf(context);
         final height = MediaQuery.sizeOf(context).height;
         final width = MediaQuery.sizeOf(context).width;
 
         final player = SizedBox(
           key: playerKey,
-          height: orientation == Orientation.landscape ? height : null,
-          width: orientation == Orientation.landscape ? width : null,
+          height: _isFullScreen ? height : null,
+          width: _isFullScreen ? width : null,
           child: PopScope(
             canPop: !_isFullScreen,
             onPopInvokedWithResult: (didPop, _) {
@@ -144,12 +160,13 @@ class _VimeoBuilderState extends State<VimeoBuilder>
 
         final child = widget.builder(context, player);
 
-        // Use LayoutBuilder to determine orientation and show appropriate content
-        if (orientation == Orientation.landscape) {
-          // In landscape, show only the player in fullscreen
+        // Show fullscreen player when _isFullScreen is true (regardless of video type)
+        // Otherwise show the child widget with the player
+        if (_isFullScreen) {
+          // Show only the player in fullscreen mode
           return player;
         } else {
-          // In portrait, show the child widget with the player
+          // Show the child widget with the player in normal mode
           return child;
         }
       },

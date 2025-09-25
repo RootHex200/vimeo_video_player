@@ -87,8 +87,13 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     if (controller.value.videoWidth != null &&
         controller.value.videoHeight != null) {
       setState(() {
-        _aspectRatio =
-            (controller.value.videoWidth! / controller.value.videoHeight!);
+        if (widget.portrait) {
+          // For portrait videos, use a portrait aspect ratio (9:16)
+          _aspectRatio = 9.0 / 16.0;
+        } else {
+          // For landscape videos, use the actual video aspect ratio
+          _aspectRatio = (controller.value.videoWidth! / controller.value.videoHeight!);
+        }
       });
     }
   }
@@ -97,7 +102,8 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   void initState() {
     super.initState();
     controller = widget.controller..addListener(listener);
-    _aspectRatio = widget.aspectRatio;
+    // Set initial aspect ratio based on portrait parameter
+    _aspectRatio = widget.portrait ? (9.0 / 16.0) : widget.aspectRatio;
 
     completer = CancelableCompleter(
       onCancel: () {

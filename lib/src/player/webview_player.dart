@@ -190,9 +190,16 @@ class _WebViewPlayerState extends State<WebViewPlayer>
     
     if (widget.isFullscreen) {
       final screenWidth = width;
-      effectiveWidth = screenWidth * 0.9; // 90% of screen width
-      // Use portrait parameter to determine aspect ratio
-      effectiveHeight = screenWidth * (widget.portrait ? 0.6 : 0.56); // Portrait: 0.6, Landscape: 0.56 (16:9)
+      
+      if (widget.portrait) {
+        // For portrait videos, use a portrait aspect ratio (9:16)
+        effectiveWidth = screenWidth * 0.8; // 80% of screen width
+        effectiveHeight = effectiveWidth * (16.0 / 9.0); // 9:16 aspect ratio
+      } else {
+        // For landscape videos, use landscape aspect ratio (16:9)
+        effectiveWidth = screenWidth * 0.9; // 90% of screen width
+        effectiveHeight = effectiveWidth * (9.0 / 16.0); // 16:9 aspect ratio
+      }
     } else {
       effectiveWidth = width;
       effectiveHeight = null;
@@ -224,8 +231,8 @@ class _WebViewPlayerState extends State<WebViewPlayer>
           max-height: 100%;
           max-width: 100%;
           object-fit: contain;
-          ${'width: ${effectiveWidth.toInt()}px;'}
           ${effectiveHeight != null ? 'height: ${effectiveHeight.toInt()}px;' : 'height: 100%;'}
+          ${'width: ${effectiveWidth.toInt()}px;'}
         }
       </style>
       <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
