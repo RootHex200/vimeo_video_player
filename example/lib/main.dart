@@ -50,36 +50,47 @@ class _MyHomePageState extends State<MyHomePage> {
   VimeoPlayerController? controller;
   bool _playerReady = false;
   final double _height = 244;
+  bool _isDisposed = false;
 
   @override
   void initState() {
     super.initState();
 
     // Initialize controller with a video ID
+    // Uncomment the lines below to test with a proper controller
     // controller = VimeoPlayerController(
     //   initialVideoId: '1003797907',
     //   flags: VimeoPlayerFlags(),
     // )..addListener(listener);
+
+    // To test null controller scenario, comment out the above and uncomment below:
+    // controller = null; // This will test null controller memory leak prevention
   }
 
   void listener() async {
+    if (_isDisposed || !mounted) return;
+
     if (_playerReady) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            // Video title is available via controller.value.videoTitle if needed
-          });
-        }
-      });
+      // Use a more memory-safe approach instead of addPostFrameCallback
+      if (mounted && !_isDisposed) {
+        setState(() {
+          // Video title is available via controller.value.videoTitle if needed
+        });
+      }
     }
   }
 
-  // Fullscreen logic is now handled internally by the package
-
   @override
   void dispose() {
+    _isDisposed = true;
+
+    // Remove listener first
     controller?.removeListener(listener);
+
+    // Dispose controller
     controller?.dispose();
+    controller = null;
+
     super.dispose();
   }
 
@@ -91,6 +102,7 @@ class _MyHomePageState extends State<MyHomePage> {
         skipDuration: 10,
         portrait: false, // Set to true for portrait video, false for landscape
         onReady: () {
+          if (_isDisposed || !mounted) return;
           print('onReady callback triggered!');
           setState(() {
             _playerReady = true;

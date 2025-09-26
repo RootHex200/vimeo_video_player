@@ -64,16 +64,21 @@ class _VimeoBuilderState extends State<VimeoBuilder>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Listen to controller changes to sync fullscreen state
-    widget.player.controller?.addListener(_onControllerValueChanged);
+    // Listen to controller changes to sync fullscreen state - only if controller exists
+    if (widget.player.controller != null) {
+      widget.player.controller!.addListener(_onControllerValueChanged);
+    }
   }
 
   void _onControllerValueChanged() {
     // Sync VimeoBuilder's fullscreen state with controller's fullscreen state
-    if (widget.player.controller?.value.isFullscreen != _isFullScreen) {
+    // Only proceed if controller exists and is not disposed
+    if (widget.player.controller != null &&
+        !widget.player.controller!.isDisposed &&
+        widget.player.controller!.value.isFullscreen != _isFullScreen) {
       if (mounted) {
         setState(() {
-          _isFullScreen = widget.player.controller?.value.isFullscreen ?? false;
+          _isFullScreen = widget.player.controller!.value.isFullscreen;
         });
       }
     }
@@ -82,7 +87,10 @@ class _VimeoBuilderState extends State<VimeoBuilder>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    widget.player.controller?.removeListener(_onControllerValueChanged);
+    // Only remove listener if controller exists
+    if (widget.player.controller != null) {
+      widget.player.controller!.removeListener(_onControllerValueChanged);
+    }
     _orientationDebounceTimer?.cancel();
     super.dispose();
   }

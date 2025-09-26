@@ -65,6 +65,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   bool _isFullScreen = false; // Internal fullscreen state
   Timer? _fullscreenDebounceTimer; // Timer to debounce fullscreen state changes
   bool _isDisposed = false;
+  VoidCallback? _disposeCallback; // Store dispose callback for proper removal
 
   void listener() async {
     if (_isDisposed || _controller == null) return;
@@ -138,11 +139,13 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       _controller!.addListener(listener);
 
       // Add dispose callback to controller
-      _controller!.addDisposeCallback(() {
+      _disposeCallback = () {
         _isDisposed = true;
-      });
+      };
+      _controller!.addDisposeCallback(_disposeCallback!);
     }
 
+    // Always create completer - it will be disposed regardless of controller state
     completer = CancelableCompleter(
       onCancel: () {
         if (mounted && !_isDisposed) {
@@ -154,6 +157,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       },
     );
 
+    // Always create animation controller - it will be disposed regardless of controller state
     _animationController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 600),
@@ -167,21 +171,27 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     // Handle controller changes
     if (oldWidget.controller != widget.controller) {
       // Remove listener from old controller
-      if (oldWidget.controller != null) {
+      if (oldWidget.controller != null && !oldWidget.controller!.isDisposed) {
         oldWidget.controller!.removeListener(listener);
+        // Remove old dispose callback if it exists
+        if (_disposeCallback != null) {
+          oldWidget.controller!.removeDisposeCallback(_disposeCallback!);
+        }
       }
 
       // Add listener to new controller
-      if (widget.controller != null) {
+      if (widget.controller != null && !widget.controller!.isDisposed) {
         _controller = widget.controller;
         _controller!.addListener(listener);
 
         // Add dispose callback to new controller
-        _controller!.addDisposeCallback(() {
+        _disposeCallback = () {
           _isDisposed = true;
-        });
+        };
+        _controller!.addDisposeCallback(_disposeCallback!);
       } else {
         _controller = null;
+        _disposeCallback = null;
       }
     }
   }
@@ -199,9 +209,14 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     // Cancel completer
     completer?.complete();
 
-    // Remove listener and dispose controller
-    if (_controller != null) {
+    // Remove listener and dispose callbacks
+    if (_controller != null && !_controller!.isDisposed) {
       _controller!.removeListener(listener);
+      // Remove dispose callback to prevent memory leaks
+      if (_disposeCallback != null) {
+        _controller!.removeDisposeCallback(_disposeCallback!);
+        _disposeCallback = null;
+      }
       // Don't dispose controller here as it might be used elsewhere
       // The controller should be disposed by its owner
     }

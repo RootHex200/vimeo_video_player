@@ -26,10 +26,12 @@ class _WebViewPlayerState extends State<WebViewPlayer>
   VimeoPlayerController? _controller;
   bool _isPlayerReady = false;
   bool _isDisposed = false;
+  InAppWebViewController? _webViewController;
 
   @override
   void initState() {
     super.initState();
+    // Always add observer - it will be removed in dispose regardless of controller state
     WidgetsBinding.instance.addObserver(this);
     _width = WidgetsBinding
         .instance
@@ -43,6 +45,24 @@ class _WebViewPlayerState extends State<WebViewPlayer>
   @override
   void dispose() {
     _isDisposed = true;
+
+    // Remove JavaScript handlers to prevent memory leaks
+    if (_webViewController != null) {
+      try {
+        _webViewController!.removeJavaScriptHandler(handlerName: 'Ready');
+        _webViewController!.removeJavaScriptHandler(
+          handlerName: 'VideoPosition',
+        );
+        _webViewController!.removeJavaScriptHandler(handlerName: 'VideoData');
+        _webViewController!.removeJavaScriptHandler(handlerName: 'StateChange');
+      } catch (e) {
+        print('Error removing JavaScript handlers: $e');
+      }
+    }
+
+    // Clear web view controller reference
+    _webViewController = null;
+
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -156,6 +176,9 @@ class _WebViewPlayerState extends State<WebViewPlayer>
         ),
         onWebViewCreated: (webController) {
           if (_isDisposed || _controller == null) return;
+
+          // Store web controller reference for proper disposal
+          _webViewController = webController;
 
           _controller!.updateValue(
             _controller!.value.copyWith(webViewController: webController),

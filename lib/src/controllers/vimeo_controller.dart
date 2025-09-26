@@ -108,6 +108,20 @@ class VimeoPlayerController extends ValueNotifier<VimeoPlayerValue> {
     }
   }
 
+  /// Clean up web view resources
+  void _cleanupWebView() {
+    if (value.webViewController != null) {
+      try {
+        // Clear any pending JavaScript evaluations
+        value.webViewController!.evaluateJavascript(source: '');
+        // Clear the web view controller reference
+        value = value.copyWith(webViewController: null);
+      } catch (e) {
+        print('Error cleaning up web view: $e');
+      }
+    }
+  }
+
   void play() => _callMethod('play()');
   void pause() => _callMethod('pause()');
   void seekTo(double delta) => _callMethod('seekTo($delta)');
@@ -141,7 +155,9 @@ class VimeoPlayerController extends ValueNotifier<VimeoPlayerValue> {
 
   /// Remove a dispose callback
   void removeDisposeCallback(VoidCallback callback) {
-    _disposeCallbacks.remove(callback);
+    if (!_isDisposed) {
+      _disposeCallbacks.remove(callback);
+    }
   }
 
   /// Check if the controller is disposed
@@ -170,10 +186,8 @@ class VimeoPlayerController extends ValueNotifier<VimeoPlayerValue> {
     }
     _disposeCallbacks.clear();
 
-    // Clear web view controller reference
-    if (value.webViewController != null) {
-      value = value.copyWith(webViewController: null);
-    }
+    // Clean up web view resources
+    _cleanupWebView();
 
     super.dispose();
   }
