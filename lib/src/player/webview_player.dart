@@ -158,136 +158,167 @@ class _WebViewPlayerState extends State<WebViewPlayer>
       );
     }
 
-    return IgnorePointer(
-      ignoring: true,
-      child: InAppWebView(
-        key: widget.key,
-        initialData: InAppWebViewInitialData(
-          data: player(_width),
-          baseUrl: WebUri('https://www.vimeo.com'),
-          encoding: 'utf-8',
-          mimeType: 'text/html',
-        ),
-        initialSettings: InAppWebViewSettings(
-          allowsInlineMediaPlayback: false,
-          userAgent: userAgent,
-          mediaPlaybackRequiresUserGesture: false,
-          transparentBackground: true,
-        ),
-        onWebViewCreated: (webController) {
-          if (_isDisposed || _controller == null) return;
+    return Stack(
+      children: [
+        IgnorePointer(
+          ignoring: true,
+          child: InAppWebView(
+            key: widget.key,
+            initialData: InAppWebViewInitialData(
+              data: player(_width),
+              baseUrl: WebUri('https://www.vimeo.com'),
+              encoding: 'utf-8',
+              mimeType: 'text/html',
+            ),
+            initialSettings: InAppWebViewSettings(
+              allowsInlineMediaPlayback: false,
+              userAgent: userAgent,
+              mediaPlaybackRequiresUserGesture: false,
+              transparentBackground: true,
+            ),
+            onWebViewCreated: (webController) {
+              if (_isDisposed || _controller == null) return;
 
-          // Store web controller reference for proper disposal
-          _webViewController = webController;
+              // Store web controller reference for proper disposal
+              _webViewController = webController;
 
-          _controller!.updateValue(
-            _controller!.value.copyWith(webViewController: webController),
-          );
-          /* add js handlers */
-          webController
-            ..addJavaScriptHandler(
-              handlerName: 'Ready',
-              callback: (_) {
-                if (_isDisposed || _controller == null) return;
-                print('player ready');
-                _isPlayerReady = true;
-                if (!_controller!.value.isReady) {
-                  _controller!.updateValue(
-                    _controller!.value.copyWith(isReady: true),
-                  );
-                }
-              },
-            )
-            ..addJavaScriptHandler(
-              handlerName: 'VideoPosition',
-              callback: (params) {
-                if (_isDisposed || _controller == null) return;
-                _controller!.updateValue(
-                  _controller!.value.copyWith(
-                    videoPosition: double.parse(params.first.toString()),
-                  ),
-                );
-              },
-            )
-            ..addJavaScriptHandler(
-              handlerName: 'VideoData',
-              callback: (params) {
-                if (_isDisposed || _controller == null) return;
-                //print('VideoData: ' + json.decode(params.first));
-                _controller!.updateValue(
-                  _controller!.value.copyWith(
-                    videoTitle: params.first['title'].toString(),
-                    videoDuration: double.parse(
-                      params.first['duration'].toString(),
-                    ),
-                    videoWidth: double.parse(params.first['width'].toString()),
-                    videoHeight: double.parse(
-                      params.first['height'].toString(),
-                    ),
-                  ),
-                );
-              },
-            )
-            ..addJavaScriptHandler(
-              handlerName: 'StateChange',
-              callback: (params) {
-                if (_isDisposed || _controller == null) return;
-                switch (params.first) {
-                  case -2:
-                    _controller!.updateValue(
-                      _controller!.value.copyWith(isBuffering: true),
-                    );
-                    break;
-                  case -1:
+              _controller!.updateValue(
+                _controller!.value.copyWith(webViewController: webController),
+              );
+              /* add js handlers */
+              webController
+                ..addJavaScriptHandler(
+                  handlerName: 'Ready',
+                  callback: (_) {
+                    if (_isDisposed || _controller == null) return;
+                    print('player ready');
+                    _isPlayerReady = true;
+                    if (!_controller!.value.isReady) {
+                      _controller!.updateValue(
+                        _controller!.value.copyWith(isReady: true),
+                      );
+                    }
+                  },
+                )
+                ..addJavaScriptHandler(
+                  handlerName: 'VideoPosition',
+                  callback: (params) {
+                    if (_isDisposed || _controller == null) return;
                     _controller!.updateValue(
                       _controller!.value.copyWith(
-                        isPlaying: false,
-                        hasEnded: true,
+                        videoPosition: double.parse(params.first.toString()),
                       ),
                     );
-                    widget.onEnded?.call(
-                      VimeoMetadata(
-                        videoDuration: Duration(
-                          seconds:
-                              _controller!.value.videoDuration?.round() ?? 0,
+                  },
+                )
+                ..addJavaScriptHandler(
+                  handlerName: 'VideoData',
+                  callback: (params) {
+                    if (_isDisposed || _controller == null) return;
+                    //print('VideoData: ' + json.decode(params.first));
+                    _controller!.updateValue(
+                      _controller!.value.copyWith(
+                        videoTitle: params.first['title'].toString(),
+                        videoDuration: double.parse(
+                          params.first['duration'].toString(),
                         ),
-                        videoId: _controller!.initialVideoId ?? '',
-                        videoTitle: _controller!.value.videoTitle ?? '',
+                        videoWidth: double.parse(
+                          params.first['width'].toString(),
+                        ),
+                        videoHeight: double.parse(
+                          params.first['height'].toString(),
+                        ),
                       ),
                     );
-                    break;
-                  case 0:
-                    _controller!.updateValue(
-                      _controller!.value.copyWith(
-                        isReady: true,
-                        isBuffering: false,
-                      ),
-                    );
-                    break;
-                  case 1:
-                    _controller!.updateValue(
-                      _controller!.value.copyWith(isPlaying: false),
-                    );
-                    break;
-                  case 2:
-                    _controller!.updateValue(
-                      _controller!.value.copyWith(isPlaying: true),
-                    );
-                    break;
-                  default:
-                    print('default player state');
-                }
-              },
-            );
-        },
-        onLoadStop: (_, __) {
-          if (_isPlayerReady && _controller != null && !_isDisposed) {
-            _controller!.updateValue(
-              _controller!.value.copyWith(isReady: true),
-            );
-          }
-        },
-      ),
+                  },
+                )
+                ..addJavaScriptHandler(
+                  handlerName: 'StateChange',
+                  callback: (params) {
+                    if (_isDisposed || _controller == null) return;
+                    switch (params.first) {
+                      case -2:
+                        _controller!.updateValue(
+                          _controller!.value.copyWith(isBuffering: true),
+                        );
+                        break;
+                      case -1:
+                        _controller!.updateValue(
+                          _controller!.value.copyWith(
+                            isPlaying: false,
+                            hasEnded: true,
+                          ),
+                        );
+                        widget.onEnded?.call(
+                          VimeoMetadata(
+                            videoDuration: Duration(
+                              seconds:
+                                  _controller!.value.videoDuration?.round() ??
+                                  0,
+                            ),
+                            videoId: _controller!.initialVideoId ?? '',
+                            videoTitle: _controller!.value.videoTitle ?? '',
+                          ),
+                        );
+                        break;
+                      case 0:
+                        _controller!.updateValue(
+                          _controller!.value.copyWith(
+                            isReady: true,
+                            isBuffering: false,
+                          ),
+                        );
+                        break;
+                      case 1:
+                        _controller!.updateValue(
+                          _controller!.value.copyWith(isPlaying: false),
+                        );
+                        break;
+                      case 2:
+                        _controller!.updateValue(
+                          _controller!.value.copyWith(isPlaying: true),
+                        );
+                        break;
+                      default:
+                        print('default player state');
+                    }
+                  },
+                );
+            },
+            onLoadStop: (_, __) {
+              if (_isPlayerReady && _controller != null && !_isDisposed) {
+                _controller!.updateValue(
+                  _controller!.value.copyWith(isReady: true),
+                );
+              }
+            },
+          ),
+        ),
+        // Loading indicator overlay
+        if (!_controller!.value.isReady)
+          Container(
+            color: Colors.black,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeWidth: 3.0,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Loading video...',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -339,8 +370,8 @@ class _WebViewPlayerState extends State<WebViewPlayer>
           max-height: 100%;
           max-width: 100%;
           object-fit: contain;
-          ${effectiveHeight != null ? 'height: ${effectiveHeight.toInt()}px;' : 'height: 100%;'}
-          ${'width: ${effectiveWidth.toInt()}px;'}
+          height: 100%;
+          width: 100%;
         }
       </style>
       <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>

@@ -58,10 +58,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // Initialize controller with a video ID
     // Uncomment the lines below to test with a proper controller
-    // controller = VimeoPlayerController(
-    //   initialVideoId: '1003797907',
-    //   flags: VimeoPlayerFlags(),
-    // )..addListener(listener);
+    controller = VimeoPlayerController(
+      initialVideoId: '1003797907',
+      flags: VimeoPlayerFlags(),
+    )..addListener(listener);
 
     // To test null controller scenario, comment out the above and uncomment below:
     // controller = null; // This will test null controller memory leak prevention
