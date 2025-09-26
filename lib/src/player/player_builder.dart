@@ -40,11 +40,7 @@ class VimeoBuilder extends StatefulWidget {
   /// Builder for [VimeoPlayer] that supports switching between fullscreen and normal mode.
   /// When popping, if the player is in fullscreen, fullscreen will be toggled,
   /// otherwise the route will pop.
-  const VimeoBuilder({
-    super.key,
-    required this.player,
-    required this.builder,
-  });
+  const VimeoBuilder({super.key, required this.player, required this.builder});
 
   /// The actual [VimeoPlayer].
   final VimeoPlayer player;
@@ -61,29 +57,32 @@ class _VimeoBuilderState extends State<VimeoBuilder>
   final GlobalKey playerKey = GlobalKey();
   bool _isFullScreen = false;
   Timer? _orientationDebounceTimer;
-  bool _isTransitioning = false; // Flag to prevent multiple simultaneous transitions
+  bool _isTransitioning =
+      false; // Flag to prevent multiple simultaneous transitions
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // Listen to controller changes to sync fullscreen state
-    widget.player.controller.addListener(_onControllerValueChanged);
+    widget.player.controller?.addListener(_onControllerValueChanged);
   }
 
   void _onControllerValueChanged() {
     // Sync VimeoBuilder's fullscreen state with controller's fullscreen state
-    if (widget.player.controller.value.isFullscreen != _isFullScreen) {
-      setState(() {
-        _isFullScreen = widget.player.controller.value.isFullscreen;
-      });
+    if (widget.player.controller?.value.isFullscreen != _isFullScreen) {
+      if (mounted) {
+        setState(() {
+          _isFullScreen = widget.player.controller?.value.isFullscreen ?? false;
+        });
+      }
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    widget.player.controller.removeListener(_onControllerValueChanged);
+    widget.player.controller?.removeListener(_onControllerValueChanged);
     _orientationDebounceTimer?.cancel();
     super.dispose();
   }
@@ -92,13 +91,16 @@ class _VimeoBuilderState extends State<VimeoBuilder>
   void didChangeMetrics() {
     // Cancel any existing timer to debounce rapid orientation changes
     _orientationDebounceTimer?.cancel();
-    
+
     // Debounce orientation changes to prevent blinking
     _orientationDebounceTimer = Timer(Duration(milliseconds: 100), () {
       if (!mounted || _isTransitioning) return;
-      
+
       final physicalSize = PlatformDispatcher.instance.views.first.physicalSize;
       final controller = widget.player.controller;
+
+      // Only proceed if controller is available
+      if (controller == null) return;
 
       // Only auto-switch to fullscreen for landscape videos when in landscape orientation
       // For portrait videos, let the VimeoPlayer handle its own fullscreen logic
@@ -107,10 +109,14 @@ class _VimeoBuilderState extends State<VimeoBuilder>
           // Landscape orientation - auto fullscreen for landscape videos
           if (!_isFullScreen) {
             _isTransitioning = true;
-            setState(() {
-              _isFullScreen = true;
-            });
-            controller.updateValue(controller.value.copyWith(isFullscreen: true));
+            if (mounted) {
+              setState(() {
+                _isFullScreen = true;
+              });
+            }
+            controller.updateValue(
+              controller.value.copyWith(isFullscreen: true),
+            );
             SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
             // Reset transition flag after a short delay
             Timer(Duration(milliseconds: 200), () {
@@ -121,10 +127,14 @@ class _VimeoBuilderState extends State<VimeoBuilder>
           // Portrait orientation - exit fullscreen for landscape videos
           if (_isFullScreen) {
             _isTransitioning = true;
-            setState(() {
-              _isFullScreen = false;
-            });
-            controller.updateValue(controller.value.copyWith(isFullscreen: false));
+            if (mounted) {
+              setState(() {
+                _isFullScreen = false;
+              });
+            }
+            controller.updateValue(
+              controller.value.copyWith(isFullscreen: false),
+            );
             SystemChrome.restoreSystemUIOverlays();
             // Reset transition flag after a short delay
             Timer(Duration(milliseconds: 200), () {
@@ -136,20 +146,23 @@ class _VimeoBuilderState extends State<VimeoBuilder>
       // For portrait videos, don't interfere with orientation changes
       // Let VimeoPlayer handle its own fullscreen logic
     });
-    
+
     super.didChangeMetrics();
   }
 
   void _toggleFullScreen() {
     final controller = widget.player.controller;
-    setState(() {
-      _isFullScreen = !_isFullScreen;
-    });
+    if (controller == null) return;
+
+    if (mounted) {
+      setState(() {
+        _isFullScreen = !_isFullScreen;
+      });
+    }
 
     if (_isFullScreen) {
       controller.updateValue(controller.value.copyWith(isFullscreen: true));
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      
     } else {
       // When exiting fullscreen, restore all orientations and system UI
       controller.updateValue(controller.value.copyWith(isFullscreen: false));
@@ -162,7 +175,6 @@ class _VimeoBuilderState extends State<VimeoBuilder>
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {

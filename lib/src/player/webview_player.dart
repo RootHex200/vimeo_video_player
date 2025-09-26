@@ -11,7 +11,7 @@ class WebViewPlayer extends StatefulWidget {
   final bool portrait;
 
   const WebViewPlayer({
-    this.key, 
+    this.key,
     this.onEnded,
     this.isFullscreen = false,
     this.portrait = false,
@@ -23,8 +23,9 @@ class WebViewPlayer extends StatefulWidget {
 
 class _WebViewPlayerState extends State<WebViewPlayer>
     with WidgetsBindingObserver {
-  late VimeoPlayerController controller;
+  VimeoPlayerController? _controller;
   bool _isPlayerReady = false;
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -41,6 +42,7 @@ class _WebViewPlayerState extends State<WebViewPlayer>
 
   @override
   void dispose() {
+    _isDisposed = true;
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -49,20 +51,93 @@ class _WebViewPlayerState extends State<WebViewPlayer>
 
   @override
   void didChangeMetrics() {
-    setState(() {
-      _width = WidgetsBinding
-          .instance
-          .platformDispatcher
-          .views
-          .first
-          .physicalSize
-          .width;
-    });
+    if (mounted && !_isDisposed) {
+      setState(() {
+        _width = WidgetsBinding
+            .instance
+            .platformDispatcher
+            .views
+            .first
+            .physicalSize
+            .width;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    controller = VimeoPlayerController.of(context);
+    _controller = VimeoPlayerController.of(context);
+
+    // If no controller is available, return empty container
+    if (_controller == null) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.video_library_outlined,
+                color: Colors.white.withOpacity(0.5),
+                size: 48,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Video player not initialized',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 16,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Controller not found in context',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // If controller exists but is not properly initialized, show different message
+    if (!_controller!.isInitialized) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.video_library_outlined,
+                color: Colors.white.withOpacity(0.5),
+                size: 48,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Video player ready',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 16,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Waiting for video to load...',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return IgnorePointer(
       ignoring: true,
       child: InAppWebView(
@@ -80,19 +155,22 @@ class _WebViewPlayerState extends State<WebViewPlayer>
           transparentBackground: true,
         ),
         onWebViewCreated: (webController) {
-          controller.updateValue(
-            controller.value.copyWith(webViewController: webController),
+          if (_isDisposed || _controller == null) return;
+
+          _controller!.updateValue(
+            _controller!.value.copyWith(webViewController: webController),
           );
           /* add js handlers */
           webController
             ..addJavaScriptHandler(
               handlerName: 'Ready',
               callback: (_) {
+                if (_isDisposed || _controller == null) return;
                 print('player ready');
                 _isPlayerReady = true;
-                if (!controller.value.isReady) {
-                  controller.updateValue(
-                    controller.value.copyWith(isReady: true),
+                if (!_controller!.value.isReady) {
+                  _controller!.updateValue(
+                    _controller!.value.copyWith(isReady: true),
                   );
                 }
               },
@@ -100,8 +178,9 @@ class _WebViewPlayerState extends State<WebViewPlayer>
             ..addJavaScriptHandler(
               handlerName: 'VideoPosition',
               callback: (params) {
-                controller.updateValue(
-                  controller.value.copyWith(
+                if (_isDisposed || _controller == null) return;
+                _controller!.updateValue(
+                  _controller!.value.copyWith(
                     videoPosition: double.parse(params.first.toString()),
                   ),
                 );
@@ -110,9 +189,10 @@ class _WebViewPlayerState extends State<WebViewPlayer>
             ..addJavaScriptHandler(
               handlerName: 'VideoData',
               callback: (params) {
+                if (_isDisposed || _controller == null) return;
                 //print('VideoData: ' + json.decode(params.first));
-                controller.updateValue(
-                  controller.value.copyWith(
+                _controller!.updateValue(
+                  _controller!.value.copyWith(
                     videoTitle: params.first['title'].toString(),
                     videoDuration: double.parse(
                       params.first['duration'].toString(),
@@ -125,18 +205,19 @@ class _WebViewPlayerState extends State<WebViewPlayer>
                 );
               },
             )
-             ..addJavaScriptHandler(
-               handlerName: 'StateChange',
-               callback: (params) {
-                 switch (params.first) {
+            ..addJavaScriptHandler(
+              handlerName: 'StateChange',
+              callback: (params) {
+                if (_isDisposed || _controller == null) return;
+                switch (params.first) {
                   case -2:
-                    controller.updateValue(
-                      controller.value.copyWith(isBuffering: true),
+                    _controller!.updateValue(
+                      _controller!.value.copyWith(isBuffering: true),
                     );
                     break;
                   case -1:
-                    controller.updateValue(
-                      controller.value.copyWith(
+                    _controller!.updateValue(
+                      _controller!.value.copyWith(
                         isPlaying: false,
                         hasEnded: true,
                       ),
@@ -144,40 +225,43 @@ class _WebViewPlayerState extends State<WebViewPlayer>
                     widget.onEnded?.call(
                       VimeoMetadata(
                         videoDuration: Duration(
-                          seconds: controller.value.videoDuration?.round() ?? 0,
+                          seconds:
+                              _controller!.value.videoDuration?.round() ?? 0,
                         ),
-                        videoId: controller.initialVideoId,
-                        videoTitle: controller.value.videoTitle ?? '',
+                        videoId: _controller!.initialVideoId ?? '',
+                        videoTitle: _controller!.value.videoTitle ?? '',
                       ),
                     );
                     break;
                   case 0:
-                    controller.updateValue(
-                      controller.value.copyWith(
+                    _controller!.updateValue(
+                      _controller!.value.copyWith(
                         isReady: true,
                         isBuffering: false,
                       ),
                     );
                     break;
                   case 1:
-                    controller.updateValue(
-                      controller.value.copyWith(isPlaying: false),
+                    _controller!.updateValue(
+                      _controller!.value.copyWith(isPlaying: false),
                     );
                     break;
                   case 2:
-                    controller.updateValue(
-                      controller.value.copyWith(isPlaying: true),
+                    _controller!.updateValue(
+                      _controller!.value.copyWith(isPlaying: true),
                     );
                     break;
                   default:
                     print('default player state');
                 }
-               },
-             );
+              },
+            );
         },
         onLoadStop: (_, __) {
-          if (_isPlayerReady) {
-            controller.updateValue(controller.value.copyWith(isReady: true));
+          if (_isPlayerReady && _controller != null && !_isDisposed) {
+            _controller!.updateValue(
+              _controller!.value.copyWith(isReady: true),
+            );
           }
         },
       ),
@@ -188,10 +272,10 @@ class _WebViewPlayerState extends State<WebViewPlayer>
     // Calculate dimensions based on fullscreen and portrait mode
     double? effectiveWidth;
     double? effectiveHeight;
-    
+
     if (widget.isFullscreen) {
       final screenWidth = width;
-      
+
       if (widget.portrait) {
         // For portrait videos, use a portrait aspect ratio (9:16)
         effectiveWidth = screenWidth * 0.8; // 80% of screen width
@@ -205,7 +289,7 @@ class _WebViewPlayerState extends State<WebViewPlayer>
       effectiveWidth = width;
       effectiveHeight = null;
     }
-    
+
     var player =
         '''<html>
       <head>
@@ -246,10 +330,10 @@ class _WebViewPlayerState extends State<WebViewPlayer>
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         var options = {
-          id: ${controller.initialVideoId},
+          id: ${_controller?.initialVideoId ?? 'null'},
           title: true,
           transparent: true,
-          autoplay: ${controller.flags.autoPlay},
+          autoplay: ${_controller?.flags.autoPlay ?? false},
           speed: true,
           controls: false,
           dnt: true${',\n          width: ${effectiveWidth.toInt()}'}${effectiveHeight != null ? ',\n          height: ${effectiveHeight.toInt()}' : ''}
@@ -337,7 +421,7 @@ class _WebViewPlayerState extends State<WebViewPlayer>
 
         function reset() {
           vimPlayer.unload().then(function(value) {
-            vimPlayer.loadVideo(${controller.initialVideoId})
+            vimPlayer.loadVideo(${_controller?.initialVideoId ?? 'null'})
           });
         }
 

@@ -151,6 +151,9 @@ class VimeoPlayerController extends ValueNotifier<VimeoPlayerValue> {
   bool get hasValidVideoId =>
       initialVideoId != null && initialVideoId!.isNotEmpty;
 
+  /// Check if the controller is properly initialized and ready for use
+  bool get isInitialized => hasValidVideoId && !_isDisposed;
+
   @override
   void dispose() {
     if (_isDisposed) return;

@@ -234,7 +234,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 ),
                 SizedBox(height: 16),
                 Text(
-                  'No video loaded',
+                  'Video player ready',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 16,
@@ -242,7 +242,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Controller not initialized',
+                  'Waiting for video to load...',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.5),
                     fontSize: 12,
@@ -472,7 +472,8 @@ class _VimeoPlayerState extends State<VimeoPlayer>
 
   @override
   Widget build(BuildContext context) {
-    // If no controller is provided, show placeholder or empty container
+    // If no controller is provided, show placeholder
+    // This handles both cases: controller not provided or controller not yet initialized
     if (_controller == null) {
       return _buildPlaceholder();
     }

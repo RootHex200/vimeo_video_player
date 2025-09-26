@@ -47,17 +47,19 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late VimeoPlayerController controller;
+  VimeoPlayerController? controller;
   bool _playerReady = false;
-  final double _height=244;
+  final double _height = 244;
+
   @override
   void initState() {
     super.initState();
 
-    controller = VimeoPlayerController(
-      initialVideoId: '1003797907',
-      flags: VimeoPlayerFlags(),
-    )..addListener(listener);
+    // Initialize controller with a video ID
+    // controller = VimeoPlayerController(
+    //   initialVideoId: '1003797907',
+    //   flags: VimeoPlayerFlags(),
+    // )..addListener(listener);
   }
 
   void listener() async {
@@ -76,8 +78,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    controller.removeListener(listener);
-    controller.dispose();
+    controller?.removeListener(listener);
+    controller?.dispose();
     super.dispose();
   }
 
