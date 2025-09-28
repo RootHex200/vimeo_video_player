@@ -504,7 +504,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
         child: ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width,
-            maxHeight: MediaQuery.of(context).size.height * 0.8, // Prevent excessive height on mobile
+            maxHeight: MediaQuery.of(context).size.height * 0.6, // More conservative height for mobile
           ),
           child: SizedBox(
             width: MediaQuery.of(context).size.width,
@@ -819,17 +819,12 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               // Controls below
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  width > 600 ? 24 : (width <= 380 ? 8 : 12),
+                  width <= 380 ? 8 : 12,
                   8,
-                  width > 600 ? 24 : (width <= 380 ? 8 : 12),
-                  width > 600 ? 20 : 16,
+                  width <= 380 ? 8 : 12,
+                  16,
                 ),
-                child: width <= 380
-                    ? SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: _buildAdaptiveControlsRow(width),
-                      )
-                    : _buildAdaptiveControlsRow(width),
+                child: _buildAdaptiveControlsRow(width),
               ),
             ],
           ),
@@ -842,29 +837,37 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     required IconData icon,
     required VoidCallback onTap,
   }) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isVerySmall = screenWidth <= 380;
+    final buttonSize = isVerySmall ? 32.0 : 36.0;
+    final iconSize = isVerySmall ? 16.0 : 18.0;
+    
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(buttonSize / 2),
         onTap: onTap,
         child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18)),
-          child: Icon(icon, color: Colors.white, size: 18),
+          width: buttonSize,
+          height: buttonSize,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(buttonSize / 2)),
+          child: Icon(icon, color: Colors.white, size: iconSize),
         ),
       ),
     );
   }
 
   Widget _buildVimeoStyleProgressBar() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isVerySmall = screenWidth <= 380;
+    
     return SizedBox(
       height: 24,
       child: SliderTheme(
         data: SliderTheme.of(context).copyWith(
-          trackHeight: 4,
-          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-          overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+          trackHeight: isVerySmall ? 3 : 4,
+          thumbShape: RoundSliderThumbShape(enabledThumbRadius: isVerySmall ? 5 : 6),
+          overlayShape: RoundSliderOverlayShape(overlayRadius: isVerySmall ? 10 : 12),
           activeTrackColor: const Color(0xFF01A4EA), // Custom blue
           inactiveTrackColor: Colors.white.withOpacity(0.3),
           thumbColor: Colors.white,
@@ -950,14 +953,17 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   }
 
   Widget _buildVolumeSlider() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isVerySmall = screenWidth <= 380;
+    
     return SizedBox(
-      width: 50,
+      width: isVerySmall ? 40 : 50,
       height: 24,
       child: SliderTheme(
         data: SliderTheme.of(context).copyWith(
           trackHeight: 2,
-          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 3),
-          overlayShape: const RoundSliderOverlayShape(overlayRadius: 6),
+          thumbShape: RoundSliderThumbShape(enabledThumbRadius: isVerySmall ? 2 : 3),
+          overlayShape: RoundSliderOverlayShape(overlayRadius: isVerySmall ? 4 : 6),
           activeTrackColor: const Color(0xFF01A4EA),
           inactiveTrackColor: Colors.white.withOpacity(0.3),
           thumbColor: const Color(0xFF01A4EA),
@@ -981,51 +987,50 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   }
 
   Widget _buildAdaptiveControlsRow(double width) {
-    final isTablet = width > 600;
-    final isMobile = width <= 400;
     final isVerySmall = width <= 380; // For very small screens
 
     return Row(
       children: [
+        // Play/Pause button
         _buildVimeoControlButton(
           icon: _controller?.value.isPlaying == true
               ? Icons.pause
               : Icons.play_arrow,
           onTap: _onBottomPlayButton,
         ),
-        SizedBox(width: isVerySmall ? 6 : (isTablet ? 16 : 12)),
+        SizedBox(width: isVerySmall ? 8 : 12),
 
         // Time display - always visible and prominent
         _buildVimeoTimeDisplay(),
 
         const Spacer(),
 
-        // Volume controls - hide on mobile and very small screens
-        if (!isMobile && !isVerySmall) ...[
-          _buildVimeoControlButton(
-            icon: _isMuted
-                ? Icons.volume_off
-                : (_volume > 0.5 ? Icons.volume_up : Icons.volume_down),
-            onTap: () {
-              setState(() {
-                if (_isMuted) {
-                  _isMuted = false;
-                  _volume = 0.7;
-                  _controller?.unmute();
-                } else {
-                  _isMuted = true;
-                  _volume = 0.0;
-                  _controller?.mute();
-                }
-              });
-            },
-          ),
-          const SizedBox(width: 4),
-          _buildVolumeSlider(),
-          const SizedBox(width: 6),
-        ],
+        // Volume toggle button - always visible
+        _buildVimeoControlButton(
+          icon: _isMuted
+              ? Icons.volume_off
+              : (_volume > 0.5 ? Icons.volume_up : Icons.volume_down),
+          onTap: () {
+            setState(() {
+              if (_isMuted) {
+                _isMuted = false;
+                _volume = 0.7;
+                _controller?.unmute();
+              } else {
+                _isMuted = true;
+                _volume = 0.0;
+                _controller?.mute();
+              }
+            });
+          },
+        ),
+        SizedBox(width: isVerySmall ? 4 : 6),
 
-        // Settings - always show with minimal spacing
+        // Volume slider - always visible
+        _buildVolumeSlider(),
+        SizedBox(width: isVerySmall ? 6 : 8),
+
+        // Settings button
         _buildVimeoControlButton(
           icon: Icons.settings,
           onTap: () {
@@ -1035,20 +1040,9 @@ class _VimeoPlayerState extends State<VimeoPlayer>
             });
           },
         ),
+        SizedBox(width: isVerySmall ? 4 : 6),
 
-        // PiP - only show on tablets
-        if (isTablet) ...[
-          const SizedBox(width: 4),
-          _buildVimeoControlButton(
-            icon: Icons.picture_in_picture_alt,
-            onTap: () {
-              // PiP functionality
-            },
-          ),
-        ],
-
-        // Minimal spacing before fullscreen
-        const SizedBox(width: 4),
+        // Fullscreen button
         _buildVimeoControlButton(
           icon: Icons.fullscreen,
           onTap: () {
@@ -1065,12 +1059,11 @@ class _VimeoPlayerState extends State<VimeoPlayer>
 
   Widget _buildSettingsOverlay(BoxConstraints constraints) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
     final isSmallScreen = screenWidth <= 380;
 
     // Calculate responsive positioning
-    final rightPosition = isSmallScreen ? 8.0 : (isTablet ? 24.0 : 16.0);
-    final overlayWidth = isSmallScreen ? 140.0 : (isTablet ? 180.0 : 160.0);
+    final rightPosition = isSmallScreen ? 8.0 : 16.0;
+    final overlayWidth = isSmallScreen ? 140.0 : 160.0;
 
     // Use actual player dimensions from constraints
     final playerHeight = constraints.maxHeight;
@@ -1078,15 +1071,13 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     // Calculate bottom position based on actual player height
     double bottomPosition;
     if (playerHeight < 250) {
-      // For very small players (like 244px), use minimal bottom position
+      // For very small players, use minimal bottom position
       bottomPosition = 20.0;
     } else if (playerHeight < 300) {
       // For small players, use small bottom position
       bottomPosition = 40.0;
     } else if (isSmallScreen) {
       bottomPosition = 50.0;
-    } else if (isTablet) {
-      bottomPosition = 100.0;
     } else {
       // For medium screens, use a moderate position
       bottomPosition = 70.0;
