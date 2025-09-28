@@ -41,14 +41,11 @@ class _VimeoPlayerState extends State<VimeoPlayer>
   bool _initialLoad = true;
   double _position = 0.0;
   double _aspectRatio = 16 / 9;
-  bool _seekingF = false;
-  bool _seekingB = false;
   bool _isPlayerReady = false;
   bool _centerUiVisible = true;
   bool _bottomUiVisible = false;
   double _uiOpacity = 1.0;
   bool _isPlaying = false;
-  int _seekDuration = 0;
   bool _showSettings = false;
   String _showSubmenu = ''; // 'quality' or 'speed'
   String _selectedQuality = 'Auto';
@@ -435,55 +432,6 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     }
   }
 
-  _handleDoublTap(TapDownDetails details) {
-    // Close settings overlay if it's open
-    if (_showSettings) {
-      setState(() {
-        _showSettings = false;
-        _showSubmenu = '';
-      });
-      return; // Don't handle seek when closing settings
-    }
-
-    if (t != null && t!.isActive) {
-      t!.cancel();
-    }
-    if (t2 != null && t2!.isActive) {
-      t2!.cancel();
-    }
-
-    setState(() {
-      _bottomUiVisible = true;
-      _centerUiVisible = false;
-      _uiOpacity = 1.0;
-    });
-    if (details.globalPosition.dx > MediaQuery.of(context).size.width / 2) {
-      setState(() {
-        _seekingF = true;
-        _seekDuration = _seekDuration + widget.skipDuration;
-      });
-      /* seek fwd */
-      _controller?.seekTo(_position + widget.skipDuration);
-    } else {
-      setState(() {
-        _seekingB = true;
-        _seekDuration = _seekDuration - widget.skipDuration;
-      });
-      /* seek Backward */
-      _controller?.seekTo(_position - widget.skipDuration);
-    }
-    /* delayed animation */
-    t = Timer(Duration(seconds: 3), () {
-      _hideUi();
-    });
-    t2 = Timer(Duration(seconds: 1), () {
-      setState(() {
-        _seekingF = false;
-        _seekingB = false;
-        _seekDuration = 0;
-      });
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -534,7 +482,6 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                   onTap: () {
                     _onUiTouched();
                   },
-                  onDoubleTapDown: _handleDoublTap,
                   child: AnimatedOpacity(
                     opacity: _uiOpacity,
                     curve: Curves.easeInOutCubic,
@@ -555,54 +502,9 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                             ),
                             child: _controller?.value.isReady == true
                                 ? Center(
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: <Widget>[
-                                        Expanded(
-                                          flex: 2,
-                                          child: Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: Padding(
-                                              padding: const EdgeInsets.only(
-                                                left: 40,
-                                              ),
-                                              child: _seekingB
-                                                  ? _buildModernSeekIndicator(
-                                                      duration: _seekDuration,
-                                                      isForward: false,
-                                                    )
-                                                  : const SizedBox(),
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          flex: 1,
-                                          child: Center(
-                                            child: _centerUiVisible
-                                                ? _buildModernPlayButton()
-                                                : const SizedBox(),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          flex: 2,
-                                          child: Align(
-                                            alignment: Alignment.centerRight,
-                                            child: Padding(
-                                              padding: const EdgeInsets.only(
-                                                right: 40,
-                                              ),
-                                              child: _seekingF
-                                                  ? _buildModernSeekIndicator(
-                                                      duration: _seekDuration,
-                                                      isForward: true,
-                                                    )
-                                                  : const SizedBox(),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                    child: _centerUiVisible
+                                        ? _buildModernPlayButton()
+                                        : const SizedBox(),
                                   )
                                 : const SizedBox(width: 1),
                           )
@@ -630,6 +532,10 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                       ),
                     ),
                   ),
+
+                // Skip buttons - only visible when bottom controller is active
+                if (_bottomUiVisible && !_initialLoad)
+                  _buildSkipButtons(),
 
                 // Settings overlay
                 if (_showSettings)
@@ -732,54 +638,82 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     );
   }
 
-  Widget _buildModernSeekIndicator({
-    required int duration,
-    required bool isForward,
+  Widget _buildSkipButtons() {
+    return Stack(
+      children: [
+        // Skip backward button - left side
+        Positioned(
+          left: 60,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: _buildSideSkipButton(
+              icon: Icons.replay_10,
+              onTap: () {
+                _controller?.seekTo(_position - widget.skipDuration);
+              },
+            ),
+          ),
+        ),
+        
+        // Skip forward button - right side
+        Positioned(
+          right: 60,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: _buildSideSkipButton(
+              icon: Icons.forward_10,
+              onTap: () {
+                _controller?.seekTo(_position + widget.skipDuration);
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSideSkipButton({
+    required IconData icon,
+    required VoidCallback onTap,
   }) {
     return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 200),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, opacity, child) {
-        return Opacity(
-          opacity: opacity,
+      duration: const Duration(milliseconds: 300),
+      tween: Tween(begin: 0.8, end: 1.0),
+      builder: (context, scale, child) {
+        return Transform.scale(
+          scale: scale,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(20),
+              color: Colors.black.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(25),
               border: Border.all(
-                color: const Color(0xFF01A4EA).withOpacity(0.4),
+                color: Colors.white.withOpacity(0.3),
                 width: 1,
               ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (!isForward) ...[
-                  const Icon(
-                    Icons.fast_rewind_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  '${duration.abs()}s',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
-                if (isForward) ...[
-                  const SizedBox(width: 8),
-                  const Icon(
-                    Icons.fast_forward_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ],
               ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(25),
+                splashColor: Colors.white.withOpacity(0.2),
+                onTap: onTap,
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
             ),
           ),
         );
