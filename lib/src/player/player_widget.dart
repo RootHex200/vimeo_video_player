@@ -232,7 +232,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       return widget.placeholder!;
     }
 
-    return Container(
+    return SizedBox(
       width: MediaQuery.of(context).size.width,
       child: AspectRatio(
         aspectRatio: _aspectRatio,
@@ -610,13 +610,25 @@ class _VimeoPlayerState extends State<VimeoPlayer>
                     ? _buildModernBottomControls(height, width)
                     : const SizedBox(height: 1),
 
-                // Settings overlay with backdrop
+                // Settings backdrop for tap detection
                 if (_showSettings)
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      return _buildSettingsOverlayWithBackdrop(constraints);
-                    },
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _showSettings = false;
+                          _showSubmenu = '';
+                        });
+                      },
+                      child: Container(
+                        color: Colors.transparent,
+                      ),
+                    ),
                   ),
+
+                // Settings overlay
+                if (_showSettings)
+                  _buildSettingsOverlay(BoxConstraints.tight(Size(width, height))),
               ],
             ),
           ),
@@ -1044,31 +1056,6 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     );
   }
 
-  Widget _buildSettingsOverlayWithBackdrop(BoxConstraints constraints) {
-    return Positioned.fill(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _showSettings = false;
-            _showSubmenu = '';
-          });
-        },
-        child: Container(
-          color: Colors.transparent,
-          child: Stack(
-            children: [
-              // Backdrop
-              Positioned.fill(
-                child: Container(color: Colors.black.withOpacity(0.1)),
-              ),
-              // Settings overlay
-              _buildSettingsOverlay(constraints),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildSettingsOverlay(BoxConstraints constraints) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -1111,69 +1098,63 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       child: GestureDetector(
         onTap: () {
           // Prevent backdrop tap when clicking on settings overlay
+          // This prevents the backdrop tap from closing the settings
         },
-        child: Material(
-          color: Colors.transparent,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: overlayWidth,
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF01A4EA).withOpacity(0.3),
-                width: 1,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: overlayWidth,
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF01A4EA).withOpacity(0.3),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.6),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-                BoxShadow(
-                  color: const Color(0xFF01A4EA).withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Quality Option
-                _buildEnhancedSettingsOption(
-                  'Quality',
-                  _selectedQuality,
-                  Icons.hd,
-                  () {
-                    setState(() {
-                      _showSubmenu = 'quality';
-                    });
-                  },
-                  isSmallScreen,
-                ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Quality Option
+              _buildEnhancedSettingsOption(
+                'Quality',
+                _selectedQuality,
+                Icons.hd,
+                () {
+                  setState(() {
+                    _showSubmenu = 'quality';
+                  });
+                },
+                isSmallScreen,
+              ),
 
-                // Divider
-                Container(
-                  height: 1,
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  color: Colors.white.withOpacity(0.15),
-                ),
+              // Divider
+              Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                color: Colors.white.withOpacity(0.15),
+              ),
 
-                // Speed Option
-                _buildEnhancedSettingsOption(
-                  'Speed',
-                  _playbackSpeed == 1.0 ? 'Normal' : '${_playbackSpeed}x',
-                  Icons.speed,
-                  () {
-                    setState(() {
-                      _showSubmenu = 'speed';
-                    });
-                  },
-                  isSmallScreen,
-                ),
-              ],
-            ),
+              // Speed Option
+              _buildEnhancedSettingsOption(
+                'Speed',
+                _playbackSpeed == 1.0 ? 'Normal' : '${_playbackSpeed}x',
+                Icons.speed,
+                () {
+                  setState(() {
+                    _showSubmenu = 'speed';
+                  });
+                },
+                isSmallScreen,
+              ),
+            ],
           ),
         ),
       ),
