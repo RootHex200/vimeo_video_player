@@ -501,13 +501,18 @@ class _VimeoPlayerState extends State<VimeoPlayer>
       color: Colors.black,
       child: InheritedVimeoPlayer(
         controller: _controller!,
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width,
-          child: AspectRatio(
-            aspectRatio: _aspectRatio,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width,
+            maxHeight: MediaQuery.of(context).size.height * 0.8, // Prevent excessive height on mobile
+          ),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: AspectRatio(
+              aspectRatio: _aspectRatio,
             child: Stack(
               fit: StackFit.expand,
-              clipBehavior: Clip.none,
+              clipBehavior: Clip.hardEdge,
               children: <Widget>[
                 WebViewPlayer(
                   key: widget.key,
@@ -632,6 +637,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
               ],
             ),
           ),
+        ),
         ),
       ),
     );
@@ -1247,26 +1253,31 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     return Positioned(
       right: rightPosition,
       bottom: bottomPosition,
-      child: Material(
-        color: Colors.transparent,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: overlayWidth,
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFF01A4EA).withOpacity(0.3),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.6),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: overlayWidth,
+          maxHeight: 200, // Prevent overflow
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: overlayWidth,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF01A4EA).withOpacity(0.3),
+                width: 1,
               ),
-            ],
-          ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1344,7 +1355,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
           ),
         ),
       ),
-    );
+      ),    );
   }
 
   Widget _buildQualityOption(String quality, bool isSmallScreen) {
@@ -1419,26 +1430,31 @@ class _VimeoPlayerState extends State<VimeoPlayer>
     return Positioned(
       right: rightPosition,
       bottom: bottomPosition,
-      child: Material(
-        color: Colors.transparent,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: overlayWidth,
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFF01A4EA).withOpacity(0.3),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.6),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: overlayWidth,
+          maxHeight: 200, // Prevent overflow
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: overlayWidth,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF01A4EA).withOpacity(0.3),
+                width: 1,
               ),
-            ],
-          ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1513,7 +1529,7 @@ class _VimeoPlayerState extends State<VimeoPlayer>
           ),
         ),
       ),
-    );
+      ),    );
   }
 
   Widget _buildSpeedOption(double speed, bool isSmallScreen) {
