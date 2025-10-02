@@ -1,7 +1,7 @@
 name: vimeo_player_package
-description: "A new Flutter package project."
-version: 0.0.1
-homepage:
+description: "This is a Vimeo Video Player Package"
+version: 1.0.0
+homepage: https://github.com/RootHex200/vimeo_video_player.git
 
 environment:
   sdk: ^3.8.0
